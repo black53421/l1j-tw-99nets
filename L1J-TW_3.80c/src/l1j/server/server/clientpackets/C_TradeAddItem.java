@@ -47,6 +47,14 @@ public class C_TradeAddItem extends ClientBasePacket {
 		
 		L1Trade trade = new L1Trade();
 		L1ItemInstance item = pc.getInventory().getItem(itemid);
+		if (item == null) {
+			return;
+		}
+		if (itemcount <= 0 || itemcount > L1Inventory.MAX_AMOUNT
+				|| item.getCount() <= 0 || itemcount > item.getCount()
+				|| (!item.isStackable() && itemcount != 1)) {
+			return;
+		}
 		if (!item.getItem().isTradable()) {
 			pc.sendPackets(new S_ServerMessage(210, item.getItem().getName())); // \f1%0は捨てたりまたは他人に讓ることができません。
 			return;

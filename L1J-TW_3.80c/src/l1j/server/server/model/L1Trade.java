@@ -70,17 +70,15 @@ public class L1Trade {
 			return;
 	    }
 		
-		itemcount = Math.abs(itemcount); // 確保物品數量為正
-		itemcount = Math.min(itemcount, l1iteminstance.getCount()); // 確保交易的物品小於身上所有
-
-		if (itemcount < 0 
-			|| itemcount > 2000000000 
-			|| l1iteminstance.getCount() < 0 
-			|| l1iteminstance.getCount() < itemcount) {
+		if (itemcount <= 0
+				|| itemcount > L1Inventory.MAX_AMOUNT
+				|| l1iteminstance.getCount() <= 0
+				|| itemcount > l1iteminstance.getCount()
+				|| (!l1iteminstance.isStackable() && itemcount != 1)) {
 			return;
 		}
 		
-		if ((l1iteminstance.getCount() < itemcount) || (0 > itemcount)) {
+		if (l1iteminstance.getCount() < itemcount) {
 			player.sendPackets(new S_TradeStatus(1));
 			trading_partner.sendPackets(new S_TradeStatus(1));
 			player.setTradeOk(false);
