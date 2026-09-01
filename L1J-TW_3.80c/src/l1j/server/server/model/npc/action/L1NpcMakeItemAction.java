@@ -75,16 +75,21 @@ public class L1NpcMakeItemAction extends L1NpcXmlAction {
 	}
 
 	private boolean makeItems(L1PcInstance pc, String npcName, int amount) {
-		if (amount <= 0) {
+		if (amount <= 0 || amount > 1000) {
 			return false;
 		}
 
 		boolean isEnoughMaterials = true;
 		for (L1ObjectAmount<Integer> material : _materials) {
-			if (!pc.getInventory().checkItemNotEquipped(material.getObject(), material.getAmount() * amount)) {
+			long requiredLong = (long) material.getAmount() * amount;
+			if (requiredLong <= 0 || requiredLong > L1PcInventory.MAX_AMOUNT) {
+				return false;
+			}
+			int required = (int) requiredLong;
+			if (!pc.getInventory().checkItemNotEquipped(material.getObject(), required)) {
 				L1Item temp = ItemTable.getInstance().getTemplate(material.getObject());
 				pc.sendPackets(new S_ServerMessage(337, temp.getName() + "("
-						+ ((material.getAmount() * amount) - pc.getInventory().countItems(temp.getItemId())) + ")")); // \f1%0が不足しています。
+						+ (required - pc.getInventory().countItems(temp.getItemId())) + ")")); // \f1%0が不足しています。
 				isEnoughMaterials = false;
 			}
 		}
@@ -93,20 +98,24 @@ public class L1NpcMakeItemAction extends L1NpcXmlAction {
 		}
 
 		// 容量と重量の計算
-		int countToCreate = 0; // アイテムの個数（纏まる物は1個）
-		int weight = 0;
+		long countToCreate = 0; // アイテムの個数（纏まる物は1個）
+		long weight = 0;
 
 		for (L1ObjectAmount<Integer> makingItem : _items) {
 			L1Item temp = ItemTable.getInstance().getTemplate(makingItem.getObject());
+			long createCount = (long) makingItem.getAmount() * amount;
+			if (createCount <= 0 || createCount > L1PcInventory.MAX_AMOUNT) {
+				return false;
+			}
 			if (temp.isStackable()) {
 				if (!pc.getInventory().checkItem(makingItem.getObject())) {
 					countToCreate += 1;
 				}
 			}
 			else {
-				countToCreate += makingItem.getAmount() * amount;
+				countToCreate += createCount;
 			}
-			weight += temp.getWeight() * (makingItem.getAmount() * amount) / 1000;
+			weight += ((long) temp.getWeight() * createCount) / 1000L;
 		}
 		// 容量確認
 		if (pc.getInventory().getSize() + countToCreate > 180) {
@@ -121,15 +130,17 @@ public class L1NpcMakeItemAction extends L1NpcXmlAction {
 
 		for (L1ObjectAmount<Integer> material : _materials) {
 			// 材料消費
-			pc.getInventory().consumeItem(material.getObject(), material.getAmount() * amount);
+			int required = (int) ((long) material.getAmount() * amount);
+			pc.getInventory().consumeItem(material.getObject(), required);
 		}
 
 		for (L1ObjectAmount<Integer> makingItem : _items) {
-			L1ItemInstance item = pc.getInventory().storeItem(makingItem.getObject(), makingItem.getAmount() * amount);
+			int createCount = (int) ((long) makingItem.getAmount() * amount);
+			L1ItemInstance item = pc.getInventory().storeItem(makingItem.getObject(), createCount);
 			if (item != null) {
 				String itemName = ItemTable.getInstance().getTemplate(makingItem.getObject()).getName();
-				if (makingItem.getAmount() * amount > 1) {
-					itemName = itemName + " (" + makingItem.getAmount() * amount + ")";
+				if (createCount > 1) {
+					itemName = itemName + " (" + createCount + ")";
 				}
 				pc.sendPackets(new S_ServerMessage(143, npcName, itemName)); // \f1%0が%1をくれました。
 			}
