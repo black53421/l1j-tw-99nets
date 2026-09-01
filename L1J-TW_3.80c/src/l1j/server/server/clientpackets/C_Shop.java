@@ -72,6 +72,11 @@ public class C_Shop extends ClientBasePacket {
 		int type = readC();
 		if (type == 0) { // 開始
 			int sellTotalCount = readH();
+			if (sellTotalCount > 8) {
+				sellList.clear();
+				buyList.clear();
+				return;
+			}
 			int sellObjectId;
 			int sellPrice;
 			int sellCount;
@@ -81,6 +86,15 @@ public class C_Shop extends ClientBasePacket {
 				sellCount = readD();
 				// 檢查交易項目
 				checkItem = pc.getInventory().getItem(sellObjectId);
+				if (checkItem == null
+						|| sellPrice <= 0 || sellPrice > 2000000000
+						|| sellCount <= 0 || sellCount > 2000000000
+						|| sellCount > checkItem.getCount()
+						|| (!checkItem.isStackable() && sellCount != 1)) {
+					sellList.clear();
+					buyList.clear();
+					return;
+				}
 				if (!checkItem.getItem().isTradable()) {
 					tradable = false;
 					pc.sendPackets(new S_ServerMessage(L1SystemMessageId.$166, checkItem.getItem().getName(), "這是不可能處理。"));
@@ -102,6 +116,11 @@ public class C_Shop extends ClientBasePacket {
 				sellList.add(pssl);
 			}
 			int buyTotalCount = readH();
+			if (buyTotalCount > 8) {
+				sellList.clear();
+				buyList.clear();
+				return;
+			}
 			int buyObjectId;
 			int buyPrice;
 			int buyCount;
@@ -111,6 +130,13 @@ public class C_Shop extends ClientBasePacket {
 				buyCount = readD();
 				// 檢查交易項目
 				checkItem = pc.getInventory().getItem(buyObjectId);
+				if (checkItem == null
+						|| buyPrice <= 0 || buyPrice > 2000000000
+						|| buyCount <= 0 || buyCount > 2000000000) {
+					sellList.clear();
+					buyList.clear();
+					return;
+				}
 				if (!checkItem.getItem().isTradable()) {
 					tradable = false;
 					pc.sendPackets(new S_ServerMessage(L1SystemMessageId.$166, checkItem.getItem().getName(), "這是不可能處理。"));
