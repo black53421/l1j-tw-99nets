@@ -346,6 +346,12 @@ public class C_Result extends ClientBasePacket {
 				for (int i = 0; i < size; i++) { // 購入予定の商品
 					order = readD();
 					count = readD();
+					if (order < 0 || order >= sellList.size()
+							|| order >= isRemoveFromList.length
+							|| count <= 0 || count > L1Inventory.MAX_AMOUNT) {
+						targetPc.setTradingInPrivateShop(false);
+						return;
+					}
 					pssl = sellList.get(order);
 					itemObjectId = pssl.getItemObjectId();
 					sellPrice = pssl.getSellPrice();
@@ -358,20 +364,22 @@ public class C_Result extends ClientBasePacket {
 					if (count > sellTotalCount - sellCount) {
 						count = sellTotalCount - sellCount;
 					}
-					if (count == 0) {
+					if (count <= 0) {
 						continue;
+					}
+					if (!item.isStackable() && count != 1) {
+						targetPc.setTradingInPrivateShop(false);
+						return;
 					}
 
 					if (pc.getInventory().checkAddItem(item, count) == L1Inventory.OK) { // 容量重量確認及びメッセージ送信
-						for (int j = 0; j < count; j++) { // オーバーフローをチェック
-							if (sellPrice * j > 2000000000) {
-								// 総販売価格は%dアデナを超過できません。
-								pc.sendPackets(new S_ServerMessage(904, "2000000000"));
-								targetPc.setTradingInPrivateShop(false);
-								return;
-							}
+						long totalPrice = (long) count * sellPrice;
+						if (sellPrice <= 0 || totalPrice <= 0 || totalPrice > L1Inventory.MAX_AMOUNT) {
+							pc.sendPackets(new S_ServerMessage(904, "2000000000"));
+							targetPc.setTradingInPrivateShop(false);
+							return;
 						}
-						price = count * sellPrice;
+						price = (int) totalPrice;
 						if (pc.getInventory().checkItem(L1ItemId.ADENA, price)) {
 							L1ItemInstance adena = pc.getInventory().findItemId(L1ItemId.ADENA);
 							if ((targetPc != null) && (adena != null)) {
@@ -408,6 +416,7 @@ public class C_Result extends ClientBasePacket {
 		} else if ((resultType == 1) && (size != 0) && isPrivateShop) { // 個人商店にアイテム売却
 			int count;
 			int order;
+			int price;
 			List<L1PrivateShopBuyList> buyList;
 			L1PrivateShopBuyList psbl;
 			int itemObjectId;
@@ -421,6 +430,9 @@ public class C_Result extends ClientBasePacket {
 			if (findObject instanceof L1PcInstance) {
 				targetPc = (L1PcInstance) findObject;
 			}
+			if (targetPc == null) {
+				return;
+			}
 			if (targetPc.isTradingInPrivateShop()) {
 				return;
 			}
@@ -431,6 +443,12 @@ public class C_Result extends ClientBasePacket {
 				itemObjectId = readD();
 				count = readCH();
 				order = readC();
+				if (order < 0 || order >= buyList.size()
+						|| order >= isRemoveFromList.length
+						|| count <= 0 || count > L1Inventory.MAX_AMOUNT) {
+					targetPc.setTradingInPrivateShop(false);
+					return;
+				}
 				item = pc.getInventory().getItem(itemObjectId);
 				if (item == null) {
 					continue;
@@ -442,6 +460,13 @@ public class C_Result extends ClientBasePacket {
 				if (count > buyTotalCount - buyCount) {
 					count = buyTotalCount - buyCount;
 				}
+				if (count <= 0) {
+					continue;
+				}
+				if (!item.isStackable() && count != 1) {
+					targetPc.setTradingInPrivateShop(false);
+					return;
+				}
 				if (item.isEquipped()) {
 					// pc.sendPackets(new S_ServerMessage(905)); // 無法販賣裝備中的道具。
 					continue;
@@ -452,20 +477,19 @@ public class C_Result extends ClientBasePacket {
 	             }
 
 				if (targetPc.getInventory().checkAddItem(item, count) == L1Inventory.OK) { // 容量重量確認及びメッセージ送信
-					for (int j = 0; j < count; j++) { // オーバーフローをチェック
-						if (buyPrice * j > 2000000000) {
-							targetPc.sendPackets(new S_ServerMessage(904, // 総販売価格は%dアデナを超過できません。
-									"2000000000"));
-							return;
-						}
+					long totalPrice = (long) count * buyPrice;
+					if (buyPrice <= 0 || totalPrice <= 0 || totalPrice > L1Inventory.MAX_AMOUNT) {
+						targetPc.sendPackets(new S_ServerMessage(904, "2000000000"));
+						targetPc.setTradingInPrivateShop(false);
+						return;
 					}
-					if (targetPc.getInventory().checkItem(L1ItemId.ADENA,
-							count * buyPrice)) {
+					price = (int) totalPrice;
+					if (targetPc.getInventory().checkItem(L1ItemId.ADENA, price)) {
 						L1ItemInstance adena = targetPc.getInventory()
 								.findItemId(L1ItemId.ADENA);
 						if (adena != null) {
 							targetPc.getInventory().tradeItem(adena,
-									count * buyPrice, pc.getInventory());
+									price, pc.getInventory());
 							pc.getInventory().tradeItem(item, count,
 									targetPc.getInventory());
 							psbl.setBuyCount(count + buyCount);
