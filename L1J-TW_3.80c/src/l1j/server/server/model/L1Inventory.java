@@ -444,6 +444,9 @@ public class L1Inventory extends L1Object {
 	}
 
 	public L1ItemInstance receiveDamage(L1ItemInstance item, int count) {
+		if (item == null || count <= 0) {
+			return null;
+		}
 		int itemType = item.getItem().getType2();
 		int currentDurability = item.get_durability();
 
