@@ -150,13 +150,24 @@ public class L1PcInventory extends L1Inventory {
 	public void loadItems() {
 		try {
 			CharactersItemStorage storage = CharactersItemStorage.create();
+			boolean weaponEquipped = false;
 
 			for (L1ItemInstance item : storage.loadItems(_owner.getId())) {
 				_items.add(item);
 
 				if (item.isEquipped()) {
-					item.setEquipped(false);
-					setEquipped(item, true, true, false);
+					if (item.getItem().getType2() == 1 && weaponEquipped) {
+						_log.warning("Multiple equipped weapons detected. char="
+								+ _owner.getName() + ", itemObjId=" + item.getId());
+						item.setEquipped(false);
+						saveItem(item, COL_EQUIPPED);
+					} else {
+						if (item.getItem().getType2() == 1) {
+							weaponEquipped = true;
+						}
+						item.setEquipped(false);
+						setEquipped(item, true, true, false);
+					}
 				}
 				if (item.getItem().getType2() == 0 && item.getItem().getType() == 2) { // light系アイテム
 					item.setRemainingTime(item.getItem().getLightFuel());
