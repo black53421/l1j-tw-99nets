@@ -16,6 +16,7 @@ package l1j.server.server.clientpackets;
 
 import l1j.server.Config;
 import l1j.server.server.ClientThread;
+import l1j.server.server.model.L1Inventory;
 import l1j.server.server.model.L1ItemCheck;
 import l1j.server.server.model.L1World;
 import l1j.server.server.model.Instance.L1DollInstance;
@@ -24,6 +25,7 @@ import l1j.server.server.model.Instance.L1NpcInstance;
 import l1j.server.server.model.Instance.L1PcInstance;
 import l1j.server.server.model.Instance.L1PetInstance;
 import l1j.server.server.serverpackets.S_ServerMessage;
+import l1j.server.server.types.Point;
 import l1j.server.server.utils.LogRecorder;
 
 /**
@@ -45,8 +47,11 @@ public class C_DropItem extends ClientBasePacket {
 		int objectId = readD();
 		int count = readD();
 
-		if (count > 0x77359400 || count < 0) { // 確保數量不會溢位
-			count = 0;
+		if (count <= 0 || count > L1Inventory.MAX_AMOUNT) {
+			return;
+		}
+		if (pc.getLocation().getTileLineDistance(new Point(x, y)) > 4) {
+			return;
 		}
 		
 		if (pc.isGhost()) {
