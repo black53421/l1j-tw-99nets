@@ -385,7 +385,7 @@ public class L1Inventory extends L1Object {
 	}
 
 	public synchronized L1ItemInstance tradeItem(L1ItemInstance item,int count, L1Inventory inventory) {
-		if (item == null) {
+		if (item == null || inventory == null || !_items.contains(item)) {
 			return null;
 		}
 		if ((item.getCount() <= 0) || (count <= 0)) {
@@ -398,12 +398,19 @@ public class L1Inventory extends L1Object {
 			return null;
 		}
 		L1ItemInstance carryItem;
-		if (item.getCount() <= count) {
+		int originalCount = item.getCount();
+		if (originalCount <= count) {
 			deleteItem(item);
+			if (_items.contains(item)) {
+				return null;
+			}
 			carryItem = item;
 		} else {
-			item.setCount(item.getCount() - count);
+			item.setCount(originalCount - count);
 			updateItem(item);
+			if (item.getCount() != originalCount - count) {
+				return null;
+			}
 			carryItem = ItemTable.getInstance().createItem(item.getItem().getItemId());
 			carryItem.setCount(count);
 			carryItem.setEnchantLevel(item.getEnchantLevel());
