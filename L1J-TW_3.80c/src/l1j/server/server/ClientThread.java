@@ -561,7 +561,9 @@ public class ClientThread implements Runnable, PacketOutput {
 
 		// 移除世界地圖上的寵物
 		// 變更召喚怪物的名稱
-		for (L1NpcInstance petNpc : pc.getPetList().values()) {
+		Object[] petList = pc.getPetList().values().toArray();
+		for (Object petObject : petList) {
+			L1NpcInstance petNpc = (L1NpcInstance) petObject;
 			if (petNpc instanceof L1PetInstance) {
 				L1PetInstance pet = (L1PetInstance) petNpc;
 				// 停止飽食度計時
@@ -578,11 +580,16 @@ public class ClientThread implements Runnable, PacketOutput {
 		}
 
 		// 移除世界地圖上的魔法娃娃
-		for (L1DollInstance doll : pc.getDollList().values())
+		Object[] dollList = pc.getDollList().values().toArray();
+		for (Object dollObject : dollList) {
+			L1DollInstance doll = (L1DollInstance) dollObject;
 			doll.deleteDoll();
+		}
 
 		// 重新建立跟隨者
-		for (L1FollowerInstance follower : pc.getFollowerList().values()) {
+		Object[] followerList = pc.getFollowerList().values().toArray();
+		for (Object followerObject : followerList) {
+			L1FollowerInstance follower = (L1FollowerInstance) followerObject;
 			follower.setParalyzed(true);
 			follower.spawn(follower.getNpcTemplate().get_npcId(),follower.getX(), follower.getY(), follower.getHeading(),follower.getMapId());
 			follower.deleteMe();
@@ -612,6 +619,10 @@ public class ClientThread implements Runnable, PacketOutput {
 
 		try {
 			pc.save();
+		} catch (Exception e) {
+			_log.log(Level.SEVERE, e.getLocalizedMessage(), e);
+		}
+		try {
 			pc.saveInventory();
 		} catch (Exception e) {
 			_log.log(Level.SEVERE, e.getLocalizedMessage(), e);
