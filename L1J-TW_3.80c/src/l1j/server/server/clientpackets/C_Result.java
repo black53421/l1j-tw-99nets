@@ -103,6 +103,9 @@ public class C_Result extends ClientBasePacket {
 				count = readD();
 				L1Object object = pc.getInventory().getItem(objectId);
 				L1ItemInstance item = (L1ItemInstance) object;
+				if (!isValidTransferRequest(item, count)) {
+					return;
+				}
 				if (!item.getItem().isTradable()) {
 					tradable = false;
 					pc.sendPackets(new S_ServerMessage(210, item.getItem().getName())); // \f1%0は捨てたりまたは他人に讓ることができません。
@@ -145,6 +148,9 @@ public class C_Result extends ClientBasePacket {
 				objectId = readD();
 				count = readD();
 				item = pc.getDwarfInventory().getItem(objectId);
+				if (!isValidTransferRequest(item, count)) {
+					return;
+				}
 				if (pc.getInventory().checkAddItem(item, count) == L1Inventory.OK) // 檢查重量與容量
 				{
 					if (pc.getInventory().consumeItem(L1ItemId.ADENA, 30)) {
@@ -168,6 +174,9 @@ public class C_Result extends ClientBasePacket {
 					L1Clan clan = L1World.getInstance().getClan(pc.getClanname());
 					L1Object object = pc.getInventory().getItem(objectId);
 					L1ItemInstance item = (L1ItemInstance) object;
+					if (!isValidTransferRequest(item, count)) {
+						return;
+					}
 					if (clan != null) {
 						if (!item.getItem().isTradable()) {
 							tradable = false;
@@ -224,6 +233,9 @@ public class C_Result extends ClientBasePacket {
 					objectId = readD();
 					count = readD();
 					item = clan.getDwarfForClanInventory().getItem(objectId);
+					if (!isValidTransferRequest(item, count)) {
+						return;
+					}
 					if (pc.getInventory().checkAddItem(item, count) == L1Inventory.OK) { // 容量重量確認及びメッセージ送信
 						if (pc.getInventory().consumeItem(L1ItemId.ADENA, 30)) {
 							clan.getDwarfForClanInventory().tradeItem(item,count, pc.getInventory());
@@ -254,6 +266,9 @@ public class C_Result extends ClientBasePacket {
 				count = readD();
 				L1Object object = pc.getInventory().getItem(objectId);
 				L1ItemInstance item = (L1ItemInstance) object;
+				if (!isValidTransferRequest(item, count)) {
+					return;
+				}
 				if (!item.getItem().isTradable()) {
 					tradable = false;
 					pc.sendPackets(new S_ServerMessage(210, item.getItem().getName())); // \f1%0は捨てたりまたは他人に讓ることができません。
@@ -298,6 +313,9 @@ public class C_Result extends ClientBasePacket {
 				objectId = readD();
 				count = readD();
 				item = pc.getDwarfForElfInventory().getItem(objectId);
+				if (!isValidTransferRequest(item, count)) {
+					return;
+				}
 				if (pc.getInventory().checkAddItem(item, count) == L1Inventory.OK) { // 容量重量確認及びメッセージ送信
 					if (pc.getInventory().consumeItem(40494, 2)) { // ミスリル
 						pc.getDwarfForElfInventory().tradeItem(item, count,
@@ -574,6 +592,14 @@ public class C_Result extends ClientBasePacket {
 				pc.sendPackets(new S_ServerMessage(189)); // \f1金幣不足。
 			}
 		}
+	}
+
+	private boolean isValidTransferRequest(L1ItemInstance item, int count) {
+		return item != null
+				&& count > 0
+				&& count <= L1Inventory.MAX_AMOUNT
+				&& count <= item.getCount()
+				&& (item.isStackable() || count == 1);
 	}
 
 	@Override
