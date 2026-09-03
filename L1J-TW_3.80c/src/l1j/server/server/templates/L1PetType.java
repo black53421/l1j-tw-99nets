@@ -22,6 +22,10 @@ public class L1PetType {
 
 	private final L1Npc _baseNpcTemplate;
 
+	private final int _petNpcId;
+
+	private final L1Npc _petNpcTemplate;
+
 	private final String _name;
 
 	private final int _itemIdForTaming;
@@ -40,11 +44,13 @@ public class L1PetType {
 
 	private final boolean _canUseEquipment;
 
-	public L1PetType(int baseNpcId, String name, int itemIdForTaming,
+	public L1PetType(int baseNpcId, int petNpcId, String name, int itemIdForTaming,
 			IntRange hpUpRange, IntRange mpUpRange, int evolvItemId, int npcIdForEvolving,
 			int msgIds[], int defyMsgId, boolean canUseEquipment) {
 		_baseNpcId = baseNpcId;
 		_baseNpcTemplate = NpcTable.getInstance().getTemplate(baseNpcId);
+		_petNpcId = (petNpcId != 0) ? petNpcId : baseNpcId;
+		_petNpcTemplate = NpcTable.getInstance().getTemplate(_petNpcId);
 		_name = name;
 		_itemIdForTaming = itemIdForTaming;
 		_hpUpRange = hpUpRange;
@@ -63,6 +69,14 @@ public class L1PetType {
 
 	public L1Npc getBaseNpcTemplate() {
 		return _baseNpcTemplate;
+	}
+
+	public int getPetNpcId() {
+		return _petNpcId;
+	}
+
+	public L1Npc getPetNpcTemplate() {
+		return _petNpcTemplate;
 	}
 
 	public String getName() {

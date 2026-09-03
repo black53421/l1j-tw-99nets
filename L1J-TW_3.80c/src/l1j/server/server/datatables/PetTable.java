@@ -239,7 +239,7 @@ public class PetTable {
 		L1Pet l1pet = new L1Pet();
 		l1pet.set_itemobjid(itemobjid);
 		l1pet.set_objid(objid);
-		l1pet.set_npcid(petNpcId);
+		l1pet.set_npcid(petType.getPetNpcId());
 		l1pet.set_name(petType.getName());
 		l1pet.set_level(upLv);
 		int hpUpMin = petType.getHpUpRange().getLow();

@@ -175,9 +175,15 @@ public class L1PetInstance extends L1NpcInstance {
 
 		// ステータスを上書き
 		setId(IdFactory.getInstance().nextId());
-		setting_template(target.getNpcTemplate());
-		setCurrentHpDirect(target.getCurrentHp());
-		setCurrentMpDirect(target.getCurrentMp());
+		L1Npc petTemplate = _type.getPetNpcTemplate();
+		setting_template(petTemplate);
+		if (_type.getPetNpcId() == target.getNpcTemplate().get_npcId()) {
+			setCurrentHpDirect(target.getCurrentHp());
+			setCurrentMpDirect(target.getCurrentMp());
+		} else {
+			setCurrentHpDirect(Math.min(target.getCurrentHp(), getMaxHp()));
+			setCurrentMpDirect(Math.min(target.getCurrentMp(), getMaxMp()));
+		}
 		setExp(750); // Lv.5のEXP
 		setExpPercent(0);
 		setLawful(0);
@@ -213,7 +219,7 @@ public class L1PetInstance extends L1NpcInstance {
 		}
 
 		master.addPet(this);
-		PetTable.getInstance().storeNewPet(target, getId(), itemid);
+		PetTable.getInstance().storeNewPet(this, getId(), itemid);
 	}
 
 	// 攻撃でＨＰを減らすときはここを使用

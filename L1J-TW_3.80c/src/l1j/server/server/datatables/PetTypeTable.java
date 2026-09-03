@@ -63,6 +63,7 @@ public class PetTypeTable {
 
 			while (rs.next()) {
 				int baseNpcId = rs.getInt("BaseNpcId");
+				int petNpcId = rs.getInt("PetNpcId");
 				String name = rs.getString("Name");
 				int itemIdForTaming = rs.getInt("ItemIdForTaming");
 				int hpUpMin = rs.getInt("HpUpMin");
@@ -79,7 +80,25 @@ public class PetTypeTable {
 				boolean canUseEquipment =  rs.getBoolean("canUseEquipment");
 				IntRange hpUpRange = new IntRange(hpUpMin, hpUpMax);
 				IntRange mpUpRange = new IntRange(mpUpMin, mpUpMax);
-				_types.put(baseNpcId, new L1PetType(baseNpcId, name, itemIdForTaming, hpUpRange, mpUpRange, evolvItemId, npcIdForEvolving, msgIds, defyMsgId, canUseEquipment));
+				L1PetType type = new L1PetType(baseNpcId, petNpcId, name,
+						itemIdForTaming, hpUpRange, mpUpRange, evolvItemId,
+						npcIdForEvolving, msgIds, defyMsgId, canUseEquipment);
+
+				if (type.getBaseNpcTemplate() == null) {
+					_log.severe("pettypes: BaseNpcId " + baseNpcId
+							+ " does not exist in npc table. Entry skipped.");
+					continue;
+				}
+				if (type.getPetNpcTemplate() == null) {
+					_log.severe("pettypes: PetNpcId " + type.getPetNpcId()
+							+ " does not exist in npc table. Entry skipped.");
+					continue;
+				}
+
+				registerType(baseNpcId, type, "BaseNpcId");
+				if (type.getPetNpcId() != baseNpcId) {
+					registerType(type.getPetNpcId(), type, "PetNpcId");
+				}
 				_defaultNames.add(name.toLowerCase());
 			}
 		}
@@ -93,8 +112,16 @@ public class PetTypeTable {
 		}
 	}
 
-	public L1PetType get(int baseNpcId) {
-		return _types.get(baseNpcId);
+	private void registerType(int npcId, L1PetType type, String source) {
+		L1PetType previous = _types.put(npcId, type);
+		if ((previous != null) && (previous != type)) {
+			_log.warning("pettypes: duplicate NPC mapping for " + npcId
+					+ " from " + source + "; later entry overrides earlier entry.");
+		}
+	}
+
+	public L1PetType get(int npcId) {
+		return _types.get(npcId);
 	}
 
 	public boolean isNameDefault(String name) {
