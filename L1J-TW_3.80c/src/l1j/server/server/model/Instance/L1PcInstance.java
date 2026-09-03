@@ -372,7 +372,7 @@ public class L1PcInstance extends L1Character {
 
 	}
 
-	private static final long INTERVAL_AUTO_UPDATE = 300;
+	private static final long INTERVAL_AUTO_UPDATE = 200;
 
 	private ScheduledFuture<?> _autoUpdateFuture;
 
@@ -477,6 +477,9 @@ public class L1PcInstance extends L1Character {
 					}
 				}
 				if (hasSkillEffect(GMSTATUS_HPBAR) && L1HpBar.isHpBarTarget(visible)) {
+					sendPackets(new S_HPMeter((L1Character) visible));
+				}
+				else if (isMonsterHpBarEnabled() && visible instanceof L1MonsterInstance) {
 					sendPackets(new S_HPMeter((L1Character) visible));
 				}
 			}
@@ -1911,6 +1914,8 @@ public class L1PcInstance extends L1Character {
 	private boolean _gm;
 	private boolean _monitor;
 	private boolean _gmInvis;
+	private boolean _damageMessageEnabled;
+	private boolean _monsterHpBarEnabled;
 	private short _accessLevel;
 	private int _currentWeapon;
 	private final L1PcInventory _inventory;
@@ -1947,6 +1952,22 @@ public class L1PcInstance extends L1Character {
 	private L1PcDeleteTimer _pcDeleteTimer;
 	private String _accountName; // ● アカウントネーム
 
+	public boolean isDamageMessageEnabled() {
+		return _damageMessageEnabled;
+	}
+
+	public void setDamageMessageEnabled(boolean enabled) {
+		_damageMessageEnabled = enabled;
+	}
+
+	public boolean isMonsterHpBarEnabled() {
+		return _monsterHpBarEnabled;
+	}
+
+	public void setMonsterHpBarEnabled(boolean enabled) {
+		_monsterHpBarEnabled = enabled;
+	}
+	
 	public String getAccountName() {
 		return _accountName;
 	}

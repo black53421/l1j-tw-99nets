@@ -989,10 +989,12 @@ public class L1Magic {
 			return;
 		}
 		if (Config.ALT_ATKMSG) {
-			if (((_calcType == PC_PC) || (_calcType == PC_NPC)) && !_pc.isGm()) {
+			if (((_calcType == PC_PC) || (_calcType == PC_NPC))
+					&& !_pc.isGm() && !_pc.isDamageMessageEnabled()) {
 				return;
 			}
-			if ((_calcType == NPC_PC) && !_targetPc.isGm()) {
+			if ((_calcType == NPC_PC)
+					&& !_targetPc.isGm() && !_targetPc.isDamageMessageEnabled()) {
 				return;
 			}
 		}

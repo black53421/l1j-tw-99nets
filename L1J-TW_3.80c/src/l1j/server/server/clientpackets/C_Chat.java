@@ -29,6 +29,8 @@ import l1j.server.server.model.Instance.L1MonsterInstance;
 import l1j.server.server.model.Instance.L1PcInstance;
 import l1j.server.server.serverpackets.S_ChatPacket;
 import l1j.server.server.serverpackets.S_NpcChatPacket;
+import l1j.server.server.serverpackets.S_HPMeter;
+import l1j.server.server.serverpackets.S_SystemMessage;
 import l1j.server.server.serverpackets.S_PacketBox;
 import l1j.server.server.serverpackets.S_ServerMessage;
 
@@ -62,6 +64,9 @@ public class C_Chat extends ClientBasePacket {
 
 		if (chatType == 0) { // 一般聊天
 			if (pc.isGhost() && !(pc.isGm() || pc.isMonitor())) {
+				return;
+			}
+			if (handlePlayerDisplayCommand(pc, chatText)) {
 				return;
 			}
 			// GM指令
@@ -232,6 +237,90 @@ public class C_Chat extends ClientBasePacket {
 		}
 	}
 
+	private static boolean handlePlayerDisplayCommand(L1PcInstance pc, String chatText) {
+		if (chatText == null) {
+			return false;
+		}
+
+		String commandLine = chatText.trim();
+		if (commandLine.length() == 0) {
+			return false;
+		}
+
+		String command;
+		String arg;
+		int separator = commandLine.indexOf(' ');
+		if (separator >= 0) {
+			command = commandLine.substring(0, separator);
+			arg = commandLine.substring(separator + 1).trim();
+		}
+		else {
+			command = commandLine;
+			arg = "";
+		}
+
+		if (command.equalsIgnoreCase("dmg")) {
+			handleDamageDisplayCommand(pc, arg);
+			return true;
+		}
+		if (command.equalsIgnoreCase("hpbar")) {
+			handleMonsterHpBarCommand(pc, arg);
+			return true;
+		}
+		return false;
+	}
+
+	private static void handleDamageDisplayCommand(L1PcInstance pc, String arg) {
+		if (!Config.ALT_ATKMSG) {
+			pc.setDamageMessageEnabled(false);
+			pc.sendPackets(new S_SystemMessage("Damage display is disabled by server configuration."));
+			return;
+		}
+
+		Boolean enabled = parseToggleArgument(pc.isDamageMessageEnabled(), arg);
+		if (enabled == null) {
+			pc.sendPackets(new S_SystemMessage("Usage: dmg [on|off]"));
+			return;
+		}
+
+		pc.setDamageMessageEnabled(enabled.booleanValue());
+		pc.sendPackets(new S_SystemMessage("Damage display: "
+				+ (enabled.booleanValue() ? "ON" : "OFF")));
+	}
+
+	private static void handleMonsterHpBarCommand(L1PcInstance pc, String arg) {
+		Boolean enabled = parseToggleArgument(pc.isMonsterHpBarEnabled(), arg);
+		if (enabled == null) {
+			pc.sendPackets(new S_SystemMessage("Usage: hpbar [on|off]"));
+			return;
+		}
+
+		pc.setMonsterHpBarEnabled(enabled.booleanValue());
+		if (!enabled.booleanValue()) {
+			for (L1Object obj : pc.getKnownObjects()) {
+				if (obj instanceof L1MonsterInstance) {
+					pc.sendPackets(new S_HPMeter(obj.getId(), 0xFF));
+				}
+			}
+		}
+
+		pc.sendPackets(new S_SystemMessage("Monster HP bar: "
+				+ (enabled.booleanValue() ? "ON" : "OFF")));
+	}
+
+	private static Boolean parseToggleArgument(boolean currentState, String arg) {
+		if (arg == null || arg.length() == 0) {
+			return Boolean.valueOf(!currentState);
+		}
+		if (arg.equalsIgnoreCase("on")) {
+			return Boolean.TRUE;
+		}
+		if (arg.equalsIgnoreCase("off")) {
+			return Boolean.FALSE;
+		}
+		return null;
+	}
+	
 	@Override
 	public String getType() {
 		return C_CHAT;
