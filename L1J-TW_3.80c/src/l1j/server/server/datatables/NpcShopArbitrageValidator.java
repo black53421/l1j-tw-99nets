@@ -103,3 +103,14 @@ final class NpcShopArbitrageValidator {
 				disabledCount++;
 				_log.severe("[ShopSecurity] Disabled NPC purchasing entry: itemId="
 						+ item.getItemId() + ", purchasingNpcId=" + shop.getNpcId()
+						+ ", purchasingUnitPrice=" + purchasingUnitPrice
+						+ ", lowestSellingNpcId=" + selling._npcId
+						+ ", lowestSellingOrderPrice=" + selling._orderPrice
+						+ ", lowestSellingPackCount=" + selling._packCount);
+			}
+		}
+
+		_log.info("[ShopSecurity] NPC shop arbitrage validation complete. "
+				+ "Disabled purchasing entries: " + disabledCount);
+	}
+}
