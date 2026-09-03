@@ -23,6 +23,10 @@
 	<Action Name="teleport talking island-in" NpcId="50003">
 		<Teleport X="32593" Y="32922" Map="0" Heading="5" Price="0"/>
 	</Action>
+	<!--伊爾卓斯 / 銀騎士村莊-->
+	<Action Name="teleport talking silverknight-in" NpcId="50003">
+	    <Teleport X="33080" Y="33386" Map="4" Heading="5" Price="0"/>
+	</Action>
 
 <!--隱藏之谷地監-->
 	<!--史蓋 / 隱藏之谷-->
@@ -763,7 +767,7 @@
 		<Teleport X="34207" Y="32251" Map="4" Heading="5" Price="363" />
 	</Action>
 	<!--顯示金額-->
-	<ShowHtml Name="teleportURLA" HtmlId="telesilver3" NpcId="50056">
+	<ShowHtml Name="teleportURLL" HtmlId="telesilver3" NpcId="50056">
 		<Data Value="110" /><!--騎士洞穴-->
 		<Data Value="110" /><!--沙漠綠洲-->
 		<Data Value="242" /><!--古魯丁地監-->
