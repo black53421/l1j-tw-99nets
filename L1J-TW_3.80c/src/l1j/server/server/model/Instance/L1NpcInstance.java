@@ -139,6 +139,8 @@ public class L1NpcInstance extends L1Character {
 
 	private boolean _movementBlockedByCharacter = false;
 
+	private L1Character _blockingAttackTarget = null;
+
 	// ■■■■■■■■■■■■■ ＡＩ関連 ■■■■■■■■■■■
 
 	interface NpcAI {
@@ -483,7 +485,18 @@ public class L1NpcInstance extends L1Character {
 					int dir = moveDirection(target.getX(), target.getY());
 					if (dir == -1) {
 						if (_movementBlockedByCharacter) {
-							setSleepTime(calcSleepTime(getPassispeed(), MOVE_SPEED));
+							if ((_blockingAttackTarget != null)
+									&& !_blockingAttackTarget.isDead()
+									&& (_blockingAttackTarget.getCurrentHp() > 0)
+									&& (_blockingAttackTarget.getMapId() == getMapId())
+									&& isAttackPosition(_blockingAttackTarget.getX(),
+											_blockingAttackTarget.getY(), getAtkRanged())) {
+								setHeading(targetDirection(_blockingAttackTarget.getX(),
+										_blockingAttackTarget.getY()));
+								attackTarget(_blockingAttackTarget);
+							} else {
+								setSleepTime(calcSleepTime(getPassispeed(), MOVE_SPEED));
+							}
 							return;
 						}
 						// 假如怪物走不過去  就找附近下一個玩家攻擊
@@ -1567,6 +1580,7 @@ public class L1NpcInstance extends L1Character {
 	// 目標までの距離に応じて最適と思われるルーチンで進む方向を返す
 	public int moveDirection(int x, int y, double d) { // 目標点Ｘ 目標点Ｙ 目標までの距離
 		_movementBlockedByCharacter = false;
+		_blockingAttackTarget = null;
 		int dir = 0;
 		if ((hasSkillEffect(40) == true) && (d >= 2D)) { // ダークネスが掛かっていて、距離が2以上の場合追跡終了
 			resetBlockerRetryState();
@@ -1604,9 +1618,7 @@ public class L1NpcInstance extends L1Character {
 
 		_movementBlockedByCharacter = true;
 		if (shouldAttackBlockingCharacter(blocker)) {
-			_hateList.add(blocker, 0);
-			_target = blocker;
-			resetBlockerRetryState();
+			_blockingAttackTarget = blocker;
 		}
 		return -1;
 	}
@@ -1687,6 +1699,9 @@ public class L1NpcInstance extends L1Character {
 				continue;
 			}
 
+			if (cha.isDead() || (cha.getCurrentHp() <= 0)) {
+				continue;
+			}
 			if ((cha instanceof L1PcInstance) && ((L1PcInstance) cha).isGhost()) {
 				continue;
 			}
@@ -1699,6 +1714,7 @@ public class L1NpcInstance extends L1Character {
 		_blockerObjectId = 0;
 		_blockerTargetObjectId = 0;
 		_blockerRetryCount = 0;
+		_blockingAttackTarget = null;
 	}
 
 	// 目標の逆方向を返す
