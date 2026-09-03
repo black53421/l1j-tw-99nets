@@ -273,6 +273,7 @@ public class C_GiveItem extends ClientBasePacket {
 	private boolean isTamePet(L1NpcInstance npc) {
 		boolean isSuccess = false;
 		int npcId = npc.getNpcTemplate().get_npcId();
+		/*
 		if (npcId == 45313) { // タイガー
 			if ((npc.getMaxHp() / 3 > npc.getCurrentHp() // HPが1/3未満で1/16の確率
 					)
@@ -290,7 +291,11 @@ public class C_GiveItem extends ClientBasePacket {
 				isSuccess = false;
 			}
 		}
-
+		*/
+		if ((npc.getMaxHp() - 1) > npc.getCurrentHp()) {
+			isSuccess = true;
+		}
+		
 		return isSuccess;
 	}
 
