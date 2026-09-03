@@ -1115,11 +1115,8 @@ public class L1Attack {
 	private int calcNpcPcDamage() {
 		int lvl = _npc.getLevel();
 		double dmg = 0D;
-		if (lvl < 10) {
-			dmg = Random.nextInt(lvl) + 10D + _npc.getStr() / 2 + 1;
-		} else {
-			dmg = Random.nextInt(lvl) + _npc.getStr() / 2 + 1;
-		}
+
+		dmg = Random.nextInt(lvl) + _npc.getStr() / 2 + 1;
 
 		if (_npc instanceof L1PetInstance) {
 			dmg += (lvl / 16); // ペットはLV16毎に追加打撃
