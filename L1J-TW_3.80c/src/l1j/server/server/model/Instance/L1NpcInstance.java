@@ -131,6 +131,14 @@ public class L1NpcInstance extends L1Character {
 
 	private int _randomMoveDirection = 0;
 
+	private int _blockerObjectId = 0;
+
+	private int _blockerTargetObjectId = 0;
+
+	private int _blockerRetryCount = 0;
+
+	private boolean _movementBlockedByCharacter = false;
+
 	// ■■■■■■■■■■■■■ ＡＩ関連 ■■■■■■■■■■■
 
 	interface NpcAI {
@@ -474,6 +482,10 @@ public class L1NpcInstance extends L1Character {
 					}
 					int dir = moveDirection(target.getX(), target.getY());
 					if (dir == -1) {
+						if (_movementBlockedByCharacter) {
+							setSleepTime(calcSleepTime(getPassispeed(), MOVE_SPEED));
+							return;
+						}
 						// 假如怪物走不過去  就找附近下一個玩家攻擊
 						searchTarget();
 					} else {
@@ -751,6 +763,7 @@ public class L1NpcInstance extends L1Character {
 		}
 		_hateList.remove(_target);
 		_target = null;
+		resetBlockerRetryState();
 	}
 
 	// 指定されたターゲットを削除
@@ -758,6 +771,7 @@ public class L1NpcInstance extends L1Character {
 		_hateList.remove(target);
 		if ((_target != null) && _target.equals(target)) {
 			_target = null;
+			resetBlockerRetryState();
 		}
 	}
 
@@ -766,6 +780,7 @@ public class L1NpcInstance extends L1Character {
 		_hateList.clear();
 		_dropHateList.clear();
 		_target = null;
+		resetBlockerRetryState();
 		_targetItemList.clear();
 		_targetItem = null;
 	}
@@ -1551,83 +1566,139 @@ public class L1NpcInstance extends L1Character {
 
 	// 目標までの距離に応じて最適と思われるルーチンで進む方向を返す
 	public int moveDirection(int x, int y, double d) { // 目標点Ｘ 目標点Ｙ 目標までの距離
+		_movementBlockedByCharacter = false;
 		int dir = 0;
 		if ((hasSkillEffect(40) == true) && (d >= 2D)) { // ダークネスが掛かっていて、距離が2以上の場合追跡終了
+			resetBlockerRetryState();
 			return -1;
 		} else if (d > 30D) { // 距離が激しく遠い場合は追跡終了
+			resetBlockerRetryState();
 			return -1;
 		} else if (d > courceRange) { // 距離が遠い場合は単純計算
 			dir = targetDirection(x, y);
-			dir = checkObject(getX(), getY(), getMapId(), dir);
+			dir = resolveBlockedDirection(dir);
 		} else { // 目標までの最短経路を探索
 			dir = _serchCource(x, y);
 			if (dir == -1) { // 目標までの経路がなっかた場合はとりあえず近づいておく
 				dir = targetDirection(x, y);
-				if (!isExsistCharacterBetweenTarget(dir)) {
-					dir = checkObject(getX(), getY(), getMapId(), dir);
-				}
+				dir = resolveBlockedDirection(dir);
+			} else {
+				resetBlockerRetryState();
 			}
 		}
 		return dir;
 	}
 
-	private boolean isExsistCharacterBetweenTarget(int dir) {
-		if (!(this instanceof L1MonsterInstance)) { // モンスター以外は対象外
-			return false;
+	private int resolveBlockedDirection(int dir) {
+		int moveDir = checkObject(getX(), getY(), getMapId(), dir);
+		if (moveDir != -1) {
+			resetBlockerRetryState();
+			return moveDir;
 		}
-		if (_target == null) { // ターゲットがいない場合
+
+		L1Character blocker = findBlockingCharacter(dir);
+		if (blocker == null) {
+			resetBlockerRetryState();
+			return -1;
+		}
+
+		_movementBlockedByCharacter = true;
+		if (shouldAttackBlockingCharacter(blocker)) {
+			_hateList.add(blocker, 0);
+			_target = blocker;
+			resetBlockerRetryState();
+		}
+		return -1;
+	}
+
+	private boolean shouldAttackBlockingCharacter(L1Character blocker) {
+		if (!(this instanceof L1MonsterInstance) || (_target == null)) {
+			resetBlockerRetryState();
 			return false;
 		}
 
-		int locX = getX();
-		int locY = getY();
-		int targetX = locX;
-		int targetY = locY;
+		if (Config.NPC_BLOCKER_RETRY_COUNT == 0) {
+			return false;
+		}
 
-		if (dir == 1) {
-			targetX = locX + 1;
-			targetY = locY - 1;
-		} else if (dir == 2) {
-			targetX = locX + 1;
-		} else if (dir == 3) {
-			targetX = locX + 1;
-			targetY = locY + 1;
-		} else if (dir == 4) {
-			targetY = locY + 1;
-		} else if (dir == 5) {
-			targetX = locX - 1;
-			targetY = locY + 1;
-		} else if (dir == 6) {
-			targetX = locX - 1;
-		} else if (dir == 7) {
-			targetX = locX - 1;
-			targetY = locY - 1;
-		} else if (dir == 0) {
-			targetY = locY - 1;
+		int blockerId = blocker.getId();
+		int targetId = _target.getId();
+		if ((_blockerObjectId != blockerId)
+				|| (_blockerTargetObjectId != targetId)) {
+			_blockerObjectId = blockerId;
+			_blockerTargetObjectId = targetId;
+			_blockerRetryCount = 0;
+		}
+
+		_blockerRetryCount++;
+		return _blockerRetryCount > Config.NPC_BLOCKER_RETRY_COUNT;
+	}
+
+	private L1Character findBlockingCharacter(int dir) {
+		if (!(this instanceof L1MonsterInstance) || (_target == null)) {
+			return null;
+		}
+
+		int targetX = getX();
+		int targetY = getY();
+		switch (dir) {
+		case 0:
+			targetY--;
+			break;
+		case 1:
+			targetX++;
+			targetY--;
+			break;
+		case 2:
+			targetX++;
+			break;
+		case 3:
+			targetX++;
+			targetY++;
+			break;
+		case 4:
+			targetY++;
+			break;
+		case 5:
+			targetX--;
+			targetY++;
+			break;
+		case 6:
+			targetX--;
+			break;
+		case 7:
+			targetX--;
+			targetY--;
+			break;
+		default:
+			return null;
 		}
 
 		for (L1Object object : L1World.getInstance().getVisibleObjects(this, 1)) {
-			// PC, Summon, Petがいる場合
-			if ((object instanceof L1PcInstance)
-					|| (object instanceof L1SummonInstance)
-					|| (object instanceof L1PetInstance)) {
-				L1Character cha = (L1Character) object;
-				// 進行方向に立ちふさがっている場合、ターゲットリストに加える
-				if ((cha.getX() == targetX) && (cha.getY() == targetY)
-						&& (cha.getMapId() == getMapId())) {
-					if (object instanceof L1PcInstance) {
-						L1PcInstance pc = (L1PcInstance) object;
-						if (pc.isGhost()) { // UB観戦中のPCは除く
-							continue;
-						}
-					}
-					_hateList.add(cha, 0);
-					_target = cha;
-					return true;
-				}
+			if (!(object instanceof L1PcInstance)
+					&& !(object instanceof L1SummonInstance)
+					&& !(object instanceof L1PetInstance)) {
+				continue;
 			}
+
+			L1Character cha = (L1Character) object;
+			if ((cha.getX() != targetX) || (cha.getY() != targetY)
+					|| (cha.getMapId() != getMapId())) {
+				continue;
+			}
+
+			if ((cha instanceof L1PcInstance) && ((L1PcInstance) cha).isGhost()) {
+				continue;
+			}
+			return cha;
 		}
-		return false;
+		return null;
+	}
+
+	private void resetBlockerRetryState() {
+		_blockerObjectId = 0;
+		_blockerTargetObjectId = 0;
+		_blockerRetryCount = 0;
 	}
 
 	// 目標の逆方向を返す
