@@ -16,6 +16,8 @@ package l1j.server.server.model.shop;
 
 import java.util.List;
 
+import l1j.server.server.model.L1Inventory;
+import l1j.server.server.model.Instance.L1ItemInstance;
 import l1j.server.server.model.Instance.L1PcInstance;
 import l1j.server.server.utils.collections.Lists;
 
@@ -51,16 +53,26 @@ public class L1ShopSellOrderList {
 		_pc = pc;
 	}
 
-	public void add(int itemObjectId, int count) {
-		L1AssessedItem assessedItem = _shop.assessItem(_pc.getInventory().getItem(itemObjectId));
-		if (assessedItem == null) {
-			/*
-			 * 買取リストに無いアイテムが指定された。 不正パケの可能性。
-			 */
-			throw new IllegalArgumentException();
+	public boolean add(int itemObjectId, int count) {
+		if ((count <= 0) || (count > L1Inventory.MAX_AMOUNT)) {
+			return false;
+		}
+
+		L1ItemInstance item = _pc.getInventory().getItem(itemObjectId);
+		L1AssessedItem assessedItem = _shop.assessItem(item);
+		if ((assessedItem == null) || (count > item.getCount())
+				|| (!item.isStackable() && (count != 1))) {
+			return false;
+		}
+
+		for (L1ShopSellOrder order : _list) {
+			if (order.getItem().getTargetId() == itemObjectId) {
+				return false;
+			}
 		}
 
 		_list.add(new L1ShopSellOrder(assessedItem, count));
+		return true;
 	}
 
 	L1PcInstance getPc() {

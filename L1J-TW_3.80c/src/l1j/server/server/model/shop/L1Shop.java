@@ -21,6 +21,7 @@ import l1j.server.server.datatables.CastleTable;
 import l1j.server.server.datatables.ItemTable;
 import l1j.server.server.datatables.TownTable;
 import l1j.server.server.model.L1CastleLocation;
+import l1j.server.server.model.L1Inventory;
 import l1j.server.server.model.L1PcInventory;
 import l1j.server.server.model.L1TaxCalculator;
 import l1j.server.server.model.L1TownLocation;
@@ -96,11 +97,18 @@ public class L1Shop {
 	}
 
 	public L1AssessedItem assessItem(L1ItemInstance item) {
+		if (!isPurchaseableItem(item)) {
+			return null;
+		}
 		L1ShopItem shopItem = getPurchasingItem(item.getItemId());
 		if (shopItem == null) {
 			return null;
 		}
-		return new L1AssessedItem(item.getId(), getAssessedPrice(shopItem));
+		int assessedPrice = getAssessedPrice(shopItem);
+		if (assessedPrice < 0) {
+			return null;
+		}
+		return new L1AssessedItem(item.getId(), assessedPrice);
 	}
 
 	private int getAssessedPrice(L1ShopItem item) {
@@ -358,16 +366,42 @@ public class L1Shop {
 	 */
 	public void buyItems(L1ShopSellOrderList orderList) {
 		L1PcInventory inv = orderList.getPc().getInventory();
-		int totalPrice = 0;
+		long totalPrice = 0;
+
+		for (L1ShopSellOrder order : orderList.getList()) {
+			L1ItemInstance item = inv.getItem(order.getItem().getTargetId());
+			L1AssessedItem assessedItem = assessItem(item);
+			int count = order.getCount();
+			if ((assessedItem == null) || (count <= 0)
+					|| (count > L1Inventory.MAX_AMOUNT)
+					|| (count > item.getCount())
+					|| (!item.isStackable() && (count != 1))) {
+				return;
+			}
+
+			long price = (long) assessedItem.getAssessedPrice() * count;
+			if ((price < 0) || (price > L1Inventory.MAX_AMOUNT)
+					|| (totalPrice > L1Inventory.MAX_AMOUNT - price)) {
+				return;
+			}
+			totalPrice += price;
+		}
+
+		L1ItemInstance adena = inv.findItemId(L1ItemId.ADENA);
+		long currentAdena = (adena == null) ? 0 : adena.getCount();
+		if (currentAdena + totalPrice > L1Inventory.MAX_AMOUNT) {
+			return;
+		}
+
+		long paidPrice = 0;
 		for (L1ShopSellOrder order : orderList.getList()) {
 			int count = inv.removeItem(order.getItem().getTargetId(),
 					order.getCount());
-			totalPrice += order.getItem().getAssessedPrice() * count;
+			paidPrice += (long) order.getItem().getAssessedPrice() * count;
 		}
 
-		totalPrice = IntRange.ensure(totalPrice, 0, 2000000000);
-		if (0 < totalPrice) {
-			inv.storeItem(L1ItemId.ADENA, totalPrice);
+		if (0 < paidPrice) {
+			inv.storeItem(L1ItemId.ADENA, (int) paidPrice);
 		}
 	}
 

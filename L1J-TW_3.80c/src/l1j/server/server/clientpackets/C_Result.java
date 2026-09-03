@@ -92,7 +92,9 @@ public class C_Result extends ClientBasePacket {
 			L1Shop shop = ShopTable.getInstance().get(npcId);
 			L1ShopSellOrderList orderList = shop.newSellOrderList(pc);
 			for (int i = 0; i < size; i++) {
-				orderList.add(readD(), readD());
+				if (!orderList.add(readD(), readD())) {
+					return;
+				}
 			}
 			shop.buyItems(orderList);
 		} else if ((resultType == 2) && (size != 0) && npcImpl.equalsIgnoreCase("L1Dwarf") && (level >= 5)) { // 自己的倉庫
