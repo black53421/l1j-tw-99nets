@@ -64,6 +64,10 @@ public class L1Shop {
 		return _sellingItems;
 	}
 
+	public List<L1ShopItem> getPurchasingItems() {
+		return _purchasingItems;
+	}
+
 	/**
 	 * この商店で、指定されたアイテムが買取可能な状態であるかを返す。
 	 * 

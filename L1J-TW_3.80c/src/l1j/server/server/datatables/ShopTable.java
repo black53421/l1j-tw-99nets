@@ -109,6 +109,8 @@ public class ShopTable {
 				_allShops.put(npcId, shop);
 				rs.close();
 			}
+
+			NpcShopArbitrageValidator.validate(_allShops);
 		}
 		catch (SQLException e) {
 			_log.log(Level.SEVERE, e.getLocalizedMessage(), e);

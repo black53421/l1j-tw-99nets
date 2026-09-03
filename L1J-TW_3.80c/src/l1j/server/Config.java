@@ -143,6 +143,10 @@ public final class Config {
 
 	public static double RATE_SHOP_PURCHASING_PRICE;
 
+	public static boolean NPC_SHOP_ARBITRAGE_PROTECTION;
+
+	public static boolean NPC_SHOP_ARBITRAGE_ALLOW_EQUAL_PRICE;
+
 	public static int CREATE_CHANCE_DIARY;
 
 	public static int CREATE_CHANCE_RECOLLECTION;
@@ -519,6 +523,8 @@ public final class Config {
 			RATE_WEIGHT_LIMIT_PET = Double.parseDouble(rateSettings.getProperty("RateWeightLimitforPet", "1"));
 			RATE_SHOP_SELLING_PRICE = Double.parseDouble(rateSettings.getProperty("RateShopSellingPrice", "1.0"));
 			RATE_SHOP_PURCHASING_PRICE = Double.parseDouble(rateSettings.getProperty("RateShopPurchasingPrice", "1.0"));
+			NPC_SHOP_ARBITRAGE_PROTECTION = Boolean.parseBoolean(rateSettings.getProperty("NpcShopArbitrageProtection", "true"));
+			NPC_SHOP_ARBITRAGE_ALLOW_EQUAL_PRICE = Boolean.parseBoolean(rateSettings.getProperty("NpcShopArbitrageAllowEqualPrice", "false"));
 			CREATE_CHANCE_DIARY = Integer.parseInt(rateSettings.getProperty("CreateChanceDiary", "33"));
 			CREATE_CHANCE_RECOLLECTION = Integer.parseInt(rateSettings.getProperty("CreateChanceRecollection", "90"));
 			CREATE_CHANCE_MYSTERIOUS = Integer.parseInt(rateSettings.getProperty("CreateChanceMysterious", "90"));
