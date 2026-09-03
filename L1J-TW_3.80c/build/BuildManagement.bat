@@ -10,6 +10,9 @@ REM ================================================== 設定參數 ================
 SET ANT_BINARY=build\ant\bin\ant
 SET BASE_PATH=..
 
+set "JAVA_HOME=C:\Program Files\Java\jdk1.8.0_503"
+set "PATH=%JAVA_HOME%\bin;%PATH%"
+
 REM ================================================== 顯示功能選項 ==================================================
 MODE CON COLS=80 LINES=26
 :init
