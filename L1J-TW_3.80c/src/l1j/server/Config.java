@@ -176,6 +176,8 @@ public final class Config {
 
 	public static boolean ALT_ATKMSG;
 
+	public static int NPC_BLOCKER_RETRY_COUNT;
+
 	public static boolean CHANGE_TITLE_BY_ONESELF;
 
 	public static int MAX_CLAN_MEMBER;
@@ -546,6 +548,11 @@ public final class Config {
 			LOOTING_RANGE = Integer.parseInt(altSettings.getProperty("LootingRange", "3"));
 			ALT_NONPVP = Boolean.parseBoolean(altSettings.getProperty("NonPvP", "true"));
 			ALT_ATKMSG = Boolean.parseBoolean(altSettings.getProperty("AttackMessageOn", "true"));
+			NPC_BLOCKER_RETRY_COUNT = Integer.parseInt(altSettings.getProperty("NpcBlockerRetryCount", "3"));
+			if (NPC_BLOCKER_RETRY_COUNT < 0) {
+				_log.warning("NpcBlockerRetryCount must be 0 or greater. Using default value 3.");
+				NPC_BLOCKER_RETRY_COUNT = 3;
+			}
 			CHANGE_TITLE_BY_ONESELF = Boolean.parseBoolean(altSettings.getProperty("ChangeTitleByOneself", "false"));
 			MAX_CLAN_MEMBER = Integer.parseInt(altSettings.getProperty("MaxClanMember", "0"));
 			CLAN_ALLIANCE = Boolean.parseBoolean(altSettings.getProperty("ClanAlliance", "true"));
