@@ -1779,6 +1779,13 @@ public class L1NpcInstance extends L1Character {
 			return false;
 		}
 
+		if (!(blocker instanceof L1PcInstance)
+				&& !(blocker instanceof L1SummonInstance)
+				&& !(blocker instanceof L1PetInstance)) {
+			resetBlockerRetryState();
+			return false;
+		}
+
 		if (Config.NPC_BLOCKER_RETRY_COUNT == 0) {
 			return false;
 		}
@@ -1839,7 +1846,8 @@ public class L1NpcInstance extends L1Character {
 		for (L1Object object : L1World.getInstance().getVisibleObjects(this, 1)) {
 			if (!(object instanceof L1PcInstance)
 					&& !(object instanceof L1SummonInstance)
-					&& !(object instanceof L1PetInstance)) {
+					&& !(object instanceof L1PetInstance)
+					&& !(object instanceof L1MonsterInstance)) {
 				continue;
 			}
 
