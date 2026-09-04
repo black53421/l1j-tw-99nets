@@ -85,7 +85,9 @@ public class C_Result extends ClientBasePacket {
 			L1Shop shop = ShopTable.getInstance().get(npcId);
 			L1ShopBuyOrderList orderList = shop.newBuyOrderList();
 			for (int i = 0; i < size; i++) {
-				orderList.add(readD(), readD());
+				if (!orderList.add(readD(), readD())) {
+					return;
+				}
 			}
 			shop.sellItems(pc, orderList);
 		} else if ((resultType == 1) && (size != 0) && npcImpl.equalsIgnoreCase("L1Merchant")) { // 賣道具

@@ -17,6 +17,7 @@ package l1j.server.server.model.shop;
 import java.util.List;
 
 import l1j.server.Config;
+import l1j.server.server.model.L1Inventory;
 import l1j.server.server.model.L1TaxCalculator;
 import l1j.server.server.templates.L1ShopItem;
 import l1j.server.server.utils.collections.Lists;
@@ -58,34 +59,80 @@ public class L1ShopBuyOrderList {
 		_taxCalc = new L1TaxCalculator(shop.getNpcId());
 	}
 
-	public void add(int orderNumber, int count) {
-		if (_shop.getSellingItems().size() < orderNumber) {
-			return;
-		}
-		L1ShopItem shopItem = _shop.getSellingItems().get(orderNumber);
+	private static final int MAX_NONSTACKABLE_ORDER_COUNT = 180;
 
-		int price = (int) (shopItem.getPrice() * Config.RATE_SHOP_SELLING_PRICE);
-		// オーバーフローチェック
-		for (int j = 0; j < count; j++) {
-			if (price * j < 0) {
-				return;
+	private int _nonStackableOrderCount = 0;
+
+	public boolean add(int orderNumber, int count) {
+		List<L1ShopItem> sellingItems = _shop.getSellingItems();
+		if ((orderNumber < 0) || (orderNumber >= sellingItems.size())
+				|| (count <= 0) || (count > L1Inventory.MAX_AMOUNT)) {
+			return false;
+		}
+
+		L1ShopItem shopItem = sellingItems.get(orderNumber);
+		int packCount = shopItem.getPackCount();
+		if (packCount <= 0) {
+			return false;
+		}
+
+		double scaledPrice = shopItem.getPrice()
+				* Config.RATE_SHOP_SELLING_PRICE;
+		if (Double.isNaN(scaledPrice) || Double.isInfinite(scaledPrice)
+				|| (scaledPrice < 0) || (scaledPrice > L1Inventory.MAX_AMOUNT)) {
+			return false;
+		}
+
+		int price = (int) scaledPrice;
+		int taxedPrice = _taxCalc.layTax(price);
+		if ((taxedPrice < 0) || (taxedPrice < price)) {
+			return false;
+		}
+
+		long itemCount = (long) count * packCount;
+		long orderPrice = (long) price * count;
+		long orderPriceTaxIncluded = (long) taxedPrice * count;
+		long orderWeight = (long) shopItem.getItem().getWeight() * itemCount;
+		if ((itemCount <= 0) || (itemCount > L1Inventory.MAX_AMOUNT)
+				|| (orderPrice < 0) || (orderPrice > L1Inventory.MAX_AMOUNT)
+				|| (orderPriceTaxIncluded < 0)
+				|| (orderPriceTaxIncluded > L1Inventory.MAX_AMOUNT)
+				|| (orderWeight < 0) || (orderWeight > Integer.MAX_VALUE)) {
+			return false;
+		}
+
+		long newTotalPrice = (long) _totalPrice + orderPrice;
+		long newTotalPriceTaxIncluded = (long) _totalPriceTaxIncluded
+				+ orderPriceTaxIncluded;
+		long newTotalWeight = (long) _totalWeight + orderWeight;
+		if ((newTotalPrice > L1Inventory.MAX_AMOUNT)
+				|| (newTotalPriceTaxIncluded > L1Inventory.MAX_AMOUNT)
+				|| (newTotalWeight > Integer.MAX_VALUE)) {
+			return false;
+		}
+
+		if (!shopItem.getItem().isStackable()) {
+			long newNonStackableCount = (long) _nonStackableOrderCount
+					+ itemCount;
+			if (newNonStackableCount > MAX_NONSTACKABLE_ORDER_COUNT) {
+				return false;
 			}
+			_nonStackableOrderCount = (int) newNonStackableCount;
 		}
-		if (_totalPrice < 0) {
-			return;
-		}
-		_totalPrice += price * count;
-		_totalPriceTaxIncluded += _taxCalc.layTax(price) * count;
-		_totalWeight += shopItem.getItem().getWeight() * count * shopItem.getPackCount();
+
+		_totalPrice = (int) newTotalPrice;
+		_totalPriceTaxIncluded = (int) newTotalPriceTaxIncluded;
+		_totalWeight = (int) newTotalWeight;
 
 		if (shopItem.getItem().isStackable()) {
-			_list.add(new L1ShopBuyOrder(shopItem, count * shopItem.getPackCount()));
-			return;
+			_list.add(new L1ShopBuyOrder(shopItem, (int) itemCount));
+			return true;
 		}
 
-		for (int i = 0; i < (count * shopItem.getPackCount()); i++) {
+		for (int i = 0; i < (int) itemCount; i++) {
 			_list.add(new L1ShopBuyOrder(shopItem, 1));
 		}
+		return true;
 	}
 
 	List<L1ShopBuyOrder> getList() {
