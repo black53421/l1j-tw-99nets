@@ -159,7 +159,7 @@ public class Opcodes {
 	public static final int S_OPCODE_CURSEBLIND = 47; // 法術效果-暗盲咒術
 	public static final int S_OPCODE_COMMONNEWS = 48; // 公告視窗
 	public static final int S_OPCODE_TRADE = 52; // 交易封包
-	public static final int S_OPCODE_SELECTTARGET = 54; // 選擇一個目標
+	public static final int S_OPCODE_SELECTTARGET = 236; // 選擇一個目標
 	public static final int S_OPCODE_SKILLSOUNDGFX = 55; // 產生動畫 [自身]
 	public static final int S_OPCODE_TELEPORT = 566; // 傳送術或瞬間移動卷軸-傳送鎖定 TODO
 	public static final int S_OPCODE_DELETEINVENTORYITEM = 57; // 刪除物品
