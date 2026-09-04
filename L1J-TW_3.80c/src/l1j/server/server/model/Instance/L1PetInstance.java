@@ -58,8 +58,10 @@ public class L1PetInstance extends L1NpcInstance {
 	public boolean noTarget() {
 		switch (_currentPetStatus) {
 			case 3: // 休息
+				resetFollowBlockedCount();
 				return true;
 			case 4: // 散開
+				resetFollowBlockedCount();
 				if ((_petMaster != null)
 						&& (_petMaster.getMapId() == getMapId())
 						&& (getLocation().getTileLineDistance(
@@ -75,6 +77,7 @@ public class L1PetInstance extends L1NpcInstance {
 				}
 				return false;
 			case 5: // 警戒
+				resetFollowBlockedCount();
 				if ((Math.abs(getHomeX() - getX()) > 1)
 						|| (Math.abs(getHomeY() - getY()) > 1)) {
 					int dir = moveDirection(getHomeX(), getHomeY());
@@ -88,6 +91,7 @@ public class L1PetInstance extends L1NpcInstance {
 				}
 				return false;
 			case 7: // 哨子呼叫
+				resetFollowBlockedCount();
 				if ((_petMaster != null)
 						&& (_petMaster.getMapId() == getMapId())
 						&& (getLocation().getTileLineDistance(
@@ -108,12 +112,9 @@ public class L1PetInstance extends L1NpcInstance {
 			default:
 				if ((_petMaster != null)
 						&& (_petMaster.getMapId() == getMapId())) {
-					if (getLocation().getTileLineDistance(_petMaster.getLocation()) > 2) {
-						_dir = moveDirection(_petMaster.getX(), _petMaster.getY());
-						setDirectionMove(_dir);
-						setSleepTime(calcSleepTime(getPassispeed(), MOVE_SPEED));
-					}
+					followCompanionMaster(_petMaster);
 				} else { // 與主人走失則休息
+					resetFollowBlockedCount();
 					_currentPetStatus = 3;
 					return true;
 				}

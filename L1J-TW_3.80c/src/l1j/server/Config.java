@@ -182,6 +182,24 @@ public final class Config {
 
 	public static int NPC_BLOCKER_RETRY_COUNT;
 
+	public static boolean COMPANION_FOLLOW_QUEUE_ENABLED;
+
+	public static int COMPANION_FOLLOW_MASTER_DISTANCE;
+
+	public static int COMPANION_FOLLOW_QUEUE_DISTANCE;
+
+	public static int COMPANION_FOLLOW_DIRECT_DISTANCE;
+
+	public static int COMPANION_FOLLOW_BLOCKED_RETRY_COUNT;
+
+	public static boolean COMPANION_FOLLOW_RECOVERY_ENABLED;
+
+	public static int COMPANION_FOLLOW_RECOVERY_DISTANCE;
+
+	public static int COMPANION_FOLLOW_RECOVERY_SEARCH_RADIUS;
+
+	public static int COMPANION_FOLLOW_RECOVERY_COOLDOWN_MS;
+
 	public static boolean CHANGE_TITLE_BY_ONESELF;
 
 	public static int MAX_CLAN_MEMBER;
@@ -558,6 +576,52 @@ public final class Config {
 			if (NPC_BLOCKER_RETRY_COUNT < 0) {
 				_log.warning("NpcBlockerRetryCount must be 0 or greater. Using default value 3.");
 				NPC_BLOCKER_RETRY_COUNT = 3;
+			}
+			COMPANION_FOLLOW_QUEUE_ENABLED = Boolean.parseBoolean(
+					altSettings.getProperty("CompanionFollowQueueEnabled", "false"));
+			COMPANION_FOLLOW_MASTER_DISTANCE = Integer.parseInt(
+					altSettings.getProperty("CompanionFollowMasterDistance", "2"));
+			COMPANION_FOLLOW_QUEUE_DISTANCE = Integer.parseInt(
+					altSettings.getProperty("CompanionFollowQueueDistance", "1"));
+			COMPANION_FOLLOW_DIRECT_DISTANCE = Integer.parseInt(
+					altSettings.getProperty("CompanionFollowDirectDistance", "6"));
+			COMPANION_FOLLOW_BLOCKED_RETRY_COUNT = Integer.parseInt(
+					altSettings.getProperty("CompanionFollowBlockedRetryCount", "3"));
+			if (COMPANION_FOLLOW_MASTER_DISTANCE < 1) {
+				_log.warning("CompanionFollowMasterDistance must be 1 or greater. Using default value 2.");
+				COMPANION_FOLLOW_MASTER_DISTANCE = 2;
+			}
+			if (COMPANION_FOLLOW_QUEUE_DISTANCE < 1) {
+				_log.warning("CompanionFollowQueueDistance must be 1 or greater. Using default value 1.");
+				COMPANION_FOLLOW_QUEUE_DISTANCE = 1;
+			}
+			if (COMPANION_FOLLOW_DIRECT_DISTANCE <= COMPANION_FOLLOW_MASTER_DISTANCE) {
+				_log.warning("CompanionFollowDirectDistance must be greater than CompanionFollowMasterDistance. Using default value 6.");
+				COMPANION_FOLLOW_DIRECT_DISTANCE = 6;
+			}
+			if (COMPANION_FOLLOW_BLOCKED_RETRY_COUNT < 0) {
+				_log.warning("CompanionFollowBlockedRetryCount must be 0 or greater. Using default value 3.");
+				COMPANION_FOLLOW_BLOCKED_RETRY_COUNT = 3;
+			}
+			COMPANION_FOLLOW_RECOVERY_ENABLED = Boolean.parseBoolean(
+					altSettings.getProperty("CompanionFollowRecoveryEnabled", "false"));
+			COMPANION_FOLLOW_RECOVERY_DISTANCE = Integer.parseInt(
+					altSettings.getProperty("CompanionFollowRecoveryDistance", "8"));
+			COMPANION_FOLLOW_RECOVERY_SEARCH_RADIUS = Integer.parseInt(
+					altSettings.getProperty("CompanionFollowRecoverySearchRadius", "2"));
+			COMPANION_FOLLOW_RECOVERY_COOLDOWN_MS = Integer.parseInt(
+					altSettings.getProperty("CompanionFollowRecoveryCooldownMs", "1000"));
+			if (COMPANION_FOLLOW_RECOVERY_DISTANCE < 1) {
+				_log.warning("CompanionFollowRecoveryDistance must be 1 or greater. Using default value 8.");
+				COMPANION_FOLLOW_RECOVERY_DISTANCE = 8;
+			}
+			if (COMPANION_FOLLOW_RECOVERY_SEARCH_RADIUS < 1) {
+				_log.warning("CompanionFollowRecoverySearchRadius must be 1 or greater. Using default value 2.");
+				COMPANION_FOLLOW_RECOVERY_SEARCH_RADIUS = 2;
+			}
+			if (COMPANION_FOLLOW_RECOVERY_COOLDOWN_MS < 0) {
+				_log.warning("CompanionFollowRecoveryCooldownMs must be 0 or greater. Using default value 1000.");
+				COMPANION_FOLLOW_RECOVERY_COOLDOWN_MS = 1000;
 			}
 			CHANGE_TITLE_BY_ONESELF = Boolean.parseBoolean(altSettings.getProperty("ChangeTitleByOneself", "false"));
 			MAX_CLAN_MEMBER = Integer.parseInt(altSettings.getProperty("MaxClanMember", "0"));

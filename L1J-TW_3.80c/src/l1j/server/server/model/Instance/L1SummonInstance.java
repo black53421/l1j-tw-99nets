@@ -63,8 +63,10 @@ public class L1SummonInstance extends L1NpcInstance {
 	public boolean noTarget() {
 		switch (_currentPetStatus) {
 			case 3: // 休息
+				resetFollowBlockedCount();
 				return true;
 			case 4: // 散開
+				resetFollowBlockedCount();
 				if ((_master != null)
 						&& (_master.getMapId() == getMapId())
 						&& (getLocation().getTileLineDistance(_master.getLocation()) < 5)) {
@@ -78,6 +80,7 @@ public class L1SummonInstance extends L1NpcInstance {
 				}
 				return false;
 			case 5:
+				resetFollowBlockedCount();
 				if ((Math.abs(getHomeX() - getX()) > 1)
 						|| (Math.abs(getHomeY() - getY()) > 1)) {
 					_dir = moveDirection(getHomeX(), getHomeY());
@@ -92,12 +95,9 @@ public class L1SummonInstance extends L1NpcInstance {
 				return false;
 			default:
 				if ((_master != null) && (_master.getMapId() == getMapId())) {
-					if (getLocation().getTileLineDistance(_master.getLocation()) > 2) {
-						_dir = moveDirection(_master.getX(), _master.getY());
-						setDirectionMove(_dir);
-						setSleepTime(calcSleepTime(getPassispeed(), MOVE_SPEED));
-					}
+					followCompanionMaster(_master);
 				} else {
+					resetFollowBlockedCount();
 					_currentPetStatus = 3;
 					return true;
 				}

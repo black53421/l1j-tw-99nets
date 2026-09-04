@@ -808,6 +808,156 @@ public class L1NpcInstance extends L1Character {
 		return _master;
 	}
 
+	private int _followSlot = -1;
+
+	private int _followBlockedCount = 0;
+
+	private long _lastFollowRecoveryTime = 0L;
+
+	public int getFollowSlot() {
+		return _followSlot;
+	}
+
+	public void setFollowSlot(int followSlot) {
+		_followSlot = followSlot;
+	}
+
+	public int getFollowBlockedCount() {
+		return _followBlockedCount;
+	}
+
+	public int incrementFollowBlockedCount() {
+		return ++_followBlockedCount;
+	}
+
+	public void resetFollowBlockedCount() {
+		_followBlockedCount = 0;
+	}
+
+	public void resetFollowRecoveryTime() {
+		_lastFollowRecoveryTime = 0L;
+	}
+
+	private boolean isFollowBlockedRetryReached(int blockedCount) {
+		return (Config.COMPANION_FOLLOW_BLOCKED_RETRY_COUNT == 0)
+				|| (blockedCount >= Config.COMPANION_FOLLOW_BLOCKED_RETRY_COUNT);
+	}
+
+	private boolean canRecoverCompanion(int masterDistance, int blockedCount) {
+		if (!Config.COMPANION_FOLLOW_RECOVERY_ENABLED
+				|| (masterDistance < Config.COMPANION_FOLLOW_RECOVERY_DISTANCE)
+				|| !isFollowBlockedRetryReached(blockedCount)) {
+			return false;
+		}
+
+		long now = System.currentTimeMillis();
+		return (Config.COMPANION_FOLLOW_RECOVERY_COOLDOWN_MS == 0)
+				|| ((now - _lastFollowRecoveryTime) >= Config.COMPANION_FOLLOW_RECOVERY_COOLDOWN_MS);
+	}
+
+	private boolean tryCompanionReposition(L1Character master) {
+		_lastFollowRecoveryTime = System.currentTimeMillis();
+		int radius = Config.COMPANION_FOLLOW_RECOVERY_SEARCH_RADIUS;
+		int masterX = master.getX();
+		int masterY = master.getY();
+
+		for (int range = 1; range <= radius; range++) {
+			for (int dy = -range; dy <= range; dy++) {
+				for (int dx = -range; dx <= range; dx++) {
+					if ((Math.abs(dx) != range) && (Math.abs(dy) != range)) {
+						continue;
+					}
+
+					int nx = masterX + dx;
+					int ny = masterY + dy;
+					if (!getMap().isInMap(nx, ny) || !getMap().isPassable(nx, ny)) {
+						continue;
+					}
+
+					repositionCompanion(nx, ny, master.getHeading());
+					return true;
+				}
+			}
+		}
+		return false;
+	}
+
+	private void repositionCompanion(int nx, int ny, int heading) {
+		List<L1PcInstance> oldViewers = L1World.getInstance().getRecognizePlayer(this);
+		for (L1PcInstance pc : oldViewers) {
+			pc.sendPackets(new S_RemoveObject(this));
+			pc.removeKnownObject(this);
+		}
+
+		getMap().setPassable(getX(), getY(), true);
+		setX(nx);
+		setY(ny);
+		setHeading(heading);
+		getMap().setPassable(getX(), getY(), false);
+
+		List<L1PcInstance> newViewers = L1World.getInstance().getVisiblePlayer(this);
+		for (L1PcInstance pc : oldViewers) {
+			pc.updateObject();
+		}
+		for (L1PcInstance pc : newViewers) {
+			if (!oldViewers.contains(pc)) {
+				pc.updateObject();
+			}
+		}
+	}
+
+	protected boolean followCompanionMaster(L1Character master) {
+		if ((master == null) || (master.getMapId() != getMapId())) {
+			resetFollowBlockedCount();
+			return false;
+		}
+
+		int masterDistance = getLocation().getTileLineDistance(master.getLocation());
+		L1Character followTarget = master;
+		int desiredDistance = Config.COMPANION_FOLLOW_MASTER_DISTANCE;
+
+		if (Config.COMPANION_FOLLOW_QUEUE_ENABLED
+				&& (getFollowSlot() > 0)
+				&& (masterDistance < Config.COMPANION_FOLLOW_DIRECT_DISTANCE)) {
+			L1NpcInstance previous = master.getPreviousFollowCompanion(this);
+			if ((previous != null) && !previous.isDead()
+					&& (previous.getMapId() == getMapId())) {
+				followTarget = previous;
+				desiredDistance = Config.COMPANION_FOLLOW_QUEUE_DISTANCE;
+			}
+		}
+
+		int targetDistance = getLocation().getTileLineDistance(followTarget.getLocation());
+		if (targetDistance <= desiredDistance) {
+			resetFollowBlockedCount();
+			return false;
+		}
+
+		int dir = moveDirection(followTarget.getX(), followTarget.getY());
+		int blockedCount = 0;
+		if (dir == -1) {
+			blockedCount = incrementFollowBlockedCount();
+			if ((followTarget != master) && isFollowBlockedRetryReached(blockedCount)) {
+				dir = moveDirection(master.getX(), master.getY());
+			}
+		}
+
+		if (dir == -1) {
+			if (canRecoverCompanion(masterDistance, blockedCount)
+					&& tryCompanionReposition(master)) {
+				setSleepTime(calcSleepTime(getPassispeed(), MOVE_SPEED));
+				resetFollowBlockedCount();
+				return true;
+			}
+			return false;
+		}
+
+		setDirectionMove(dir);
+		setSleepTime(calcSleepTime(getPassispeed(), MOVE_SPEED));
+		resetFollowBlockedCount();
+		return true;
+	}
+
 	// ＡＩトリガ
 	public void onNpcAI() {
 	}

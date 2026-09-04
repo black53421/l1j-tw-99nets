@@ -633,8 +633,41 @@ public class L1Character extends L1Object {
 	 *            追加するNpcを表す、L1NpcInstanceオブジェクト。
 	 */
 	public void addPet(L1NpcInstance npc) {
+		npc.setFollowSlot(findAvailableFollowSlot());
+		npc.resetFollowBlockedCount();
+		npc.resetFollowRecoveryTime();
 		_petlist.put(npc.getId(), npc);
 		sendPetCtrlMenu(npc, true);// 顯示寵物控制圖形介面
+	}
+
+	private int findAvailableFollowSlot() {
+		int slot = 0;
+		while (true) {
+			boolean used = false;
+			for (L1NpcInstance pet : _petlist.values()) {
+				if (pet.getFollowSlot() == slot) {
+					used = true;
+					break;
+				}
+			}
+			if (!used) {
+				return slot;
+			}
+			slot++;
+		}
+	}
+
+	public L1NpcInstance getPreviousFollowCompanion(L1NpcInstance npc) {
+		int previousSlot = npc.getFollowSlot() - 1;
+		if (previousSlot < 0) {
+			return null;
+		}
+		for (L1NpcInstance pet : _petlist.values()) {
+			if ((pet != npc) && (pet.getFollowSlot() == previousSlot)) {
+				return pet;
+			}
+		}
+		return null;
 	}
 
 	/**
@@ -645,6 +678,9 @@ public class L1Character extends L1Object {
 	 */
 	public void removePet(L1NpcInstance npc) {
 		_petlist.remove(npc.getId());
+		npc.setFollowSlot(-1);
+		npc.resetFollowBlockedCount();
+		npc.resetFollowRecoveryTime();
 		sendPetCtrlMenu(npc, false);// 關閉寵物控制圖形介面
 	}
 
