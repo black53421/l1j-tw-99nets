@@ -268,6 +268,13 @@ public class ClientThread implements Runnable, PacketOutput {
 
 				int opcode = data[0] & 0xFF;
 
+				if (_activeChar != null && BatchEnchantService.blockInventoryActionIfBusy(_activeChar, opcode)) {
+					if (opcode != Opcodes.C_OPCODE_KEEPALIVE) {
+						observer.packetReceived();
+					}
+					continue;
+				}
+
 				// 處理多重登入
 				if (opcode == Opcodes.C_OPCODE_BEANFUNLOGINPACKET || opcode == Opcodes.C_OPCODE_CHANGECHAR) {
 					_loginStatus = 1;
@@ -526,7 +533,7 @@ public class ClientThread implements Runnable, PacketOutput {
 	}
 
 	public static void quitGame(L1PcInstance pc) {
-		BatchEnchantService.clear(pc);
+		BatchEnchantService.cancelAndWaitForIdle(pc, 1000L);
 		// 如果死掉回到城中，設定飽食度
 		if (pc.isDead()) {
 			try {

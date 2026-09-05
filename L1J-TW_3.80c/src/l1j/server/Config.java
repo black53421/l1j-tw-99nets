@@ -190,6 +190,8 @@ public final class Config {
 
 	public static int BATCH_ENCHANT_ARM_TIMEOUT_SECONDS;
 
+	public static boolean BATCH_ENCHANT_LOCK_INVENTORY_ACTIONS;
+
 	public static int NPC_BLOCKER_RETRY_COUNT;
 
 	public static boolean COMPANION_FOLLOW_QUEUE_ENABLED;
@@ -591,6 +593,8 @@ public final class Config {
 					altSettings.getProperty("BatchEnchantMaxAttempts", "300"));
 			BATCH_ENCHANT_ARM_TIMEOUT_SECONDS = Integer.parseInt(
 					altSettings.getProperty("BatchEnchantArmTimeoutSeconds", "30"));
+			BATCH_ENCHANT_LOCK_INVENTORY_ACTIONS = Boolean.parseBoolean(
+					altSettings.getProperty("BatchEnchantLockInventoryActions", "true"));
 			if (BATCH_ENCHANT_MAX_ITEMS < 1) {
 				_log.warning("BatchEnchantMaxItems must be 1 or greater. Using default value 30.");
 				BATCH_ENCHANT_MAX_ITEMS = 30;
