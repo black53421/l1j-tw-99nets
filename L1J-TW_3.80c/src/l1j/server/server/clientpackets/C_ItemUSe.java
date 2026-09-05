@@ -1587,9 +1587,7 @@ public class C_ItemUSe extends ClientBasePacket {
 								}
 							}
 							
-							L1Teleport.teleport(pc, newX, newY, mapId, 5, true);
-							// 卷軸傳送後 使用物品延遲完才解開停止狀態
-							L1ItemDelay.teleportUnlock(pc, l1iteminstance);
+							teleportWithItemUnlock(pc, l1iteminstance, newX, newY, mapId, 5, true);
 							pc.getInventory().removeItem(l1iteminstance, 1);
 						}
 						else {
@@ -1612,9 +1610,7 @@ public class C_ItemUSe extends ClientBasePacket {
 									}
 								}
 							}
-							L1Teleport.teleport(pc, newX, newY, mapId, 5, true);
-							// 卷軸傳送後 使用物品延遲完才解開停止狀態
-							L1ItemDelay.teleportUnlock(pc, l1iteminstance);
+							teleportWithItemUnlock(pc, l1iteminstance, newX, newY, mapId, 5, true);
 							pc.getInventory().removeItem(l1iteminstance, 1);
 						}
 						else {
@@ -3075,11 +3071,12 @@ public class C_ItemUSe extends ClientBasePacket {
 					short mapId = ((L1EtcItem) l1iteminstance.getItem()).get_mapid();
 					if ((locX != 0) && (locY != 0)) { // 各種テレポートスクロール
 						if (pc.getMap().isEscapable() || pc.isGm()) {
-							L1Teleport.teleport(pc, locX, locY, mapId, pc.getHeading(), true);
+							teleportWithItemUnlock(pc, l1iteminstance, locX, locY, mapId, pc.getHeading(), true);
 							pc.getInventory().removeItem(l1iteminstance, 1);
 						}
 						else {
 							pc.sendPackets(new S_ServerMessage(647));
+							pc.sendPackets(new S_Paralysis(S_Paralysis.TYPE_TELEPORT_UNLOCK, true));
 						}
 					}
 					else {
@@ -3152,6 +3149,14 @@ public class C_ItemUSe extends ClientBasePacket {
 			}
 
 			L1ItemDelay.onItemUse(client, l1iteminstance); // アイテムディレイ開始
+		}
+	}
+
+	private void teleportWithItemUnlock(L1PcInstance pc, L1ItemInstance item, int x, int y, short mapId, int heading, boolean effectable) {
+		try {
+			L1Teleport.teleport(pc, x, y, mapId, heading, effectable);
+		} finally {
+			L1ItemDelay.teleportUnlock(pc, item);
 		}
 	}
 

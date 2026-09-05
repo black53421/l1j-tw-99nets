@@ -20,11 +20,10 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.Socket;
 import java.util.Arrays;
-import java.util.Queue;
 import java.util.Timer;
 import java.util.TimerTask;
-import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -194,8 +193,8 @@ public class ClientThread implements Runnable, PacketOutput {
 		 * 
 		 * 無制限にする前に不正検出方法を見直す必要がある。
 		 */
-		HcPacket movePacket = new HcPacket(M_CAPACITY);
-		HcPacket hcPacket = new HcPacket(H_CAPACITY);
+		HcPacket movePacket = new HcPacket(M_CAPACITY, true);
+		HcPacket hcPacket = new HcPacket(H_CAPACITY, false);
 		GeneralThreadPool.getInstance().execute(movePacket);
 		GeneralThreadPool.getInstance().execute(hcPacket);
 		
@@ -380,22 +379,34 @@ public class ClientThread implements Runnable, PacketOutput {
 
 	// 帳號處理的程序
 	class HcPacket implements Runnable {
-		private final Queue<byte[]> _queue;
+		private final LinkedBlockingQueue<byte[]> _queue;
+
+		private final boolean _dropWhenFull;
 
 		private PacketHandler _handler;
 
-		public HcPacket() {
-			_queue = new ConcurrentLinkedQueue<byte[]>();
-			_handler = new PacketHandler(ClientThread.this);
-		}
-
-		public HcPacket(int capacity) {
+		public HcPacket(int capacity, boolean dropWhenFull) {
 			_queue = new LinkedBlockingQueue<byte[]>(capacity);
+			_dropWhenFull = dropWhenFull;
 			_handler = new PacketHandler(ClientThread.this);
 		}
 
 		public void requestWork(byte data[]) {
-			_queue.offer(data);
+			if (_dropWhenFull) {
+				_queue.offer(data);
+				return;
+			}
+
+			while (_csocket != null) {
+				try {
+					if (_queue.offer(data, 100, TimeUnit.MILLISECONDS)) {
+						return;
+					}
+				} catch (InterruptedException e) {
+					Thread.currentThread().interrupt();
+					return;
+				}
+			}
 		}
 
 		@Override

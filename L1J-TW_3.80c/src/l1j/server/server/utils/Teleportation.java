@@ -18,6 +18,8 @@ import static l1j.server.server.model.skill.L1SkillId.MEDITATION;
 import static l1j.server.server.model.skill.L1SkillId.WIND_SHACKLE;
 
 import java.util.HashSet;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 import l1j.server.server.model.L1Clan;
 import l1j.server.server.model.L1DragonSlayer;
@@ -43,6 +45,8 @@ import l1j.server.server.serverpackets.S_SummonPack;
 // FaceToFace
 
 public class Teleportation {
+	private static final Logger _log = Logger.getLogger(Teleportation.class.getName());
+
 	private Teleportation() {
 	}
 
@@ -66,7 +70,11 @@ public class Teleportation {
 		}
 
 		pc.setTeleport(true);
+		final L1Map oldMap = pc.getMap();
+		final int oldX = pc.getX();
+		final int oldY = pc.getY();
 
+		try {
 		final L1Clan clan = L1World.getInstance().getClan(pc.getClanname());
 		if (clan != null) {
 			if (clan.getWarehouseUsingChar() == pc.getId()) { // 自キャラがクラン倉庫使用中
@@ -74,8 +82,10 @@ public class Teleportation {
 			}
 		}
 
+		oldMap.setPassable(oldX, oldY, true);
 		L1World.getInstance().moveVisibleObject(pc, mapId);
 		pc.setLocation(x, y, mapId);
+		pc.getMap().setPassable(pc.getLocation(), false);
 		pc.setHeading(head);
 		pc.sendPackets(new S_MapID(pc.getMapId(), pc.getMap().isUnderwater()));
 
@@ -179,8 +189,6 @@ public class Teleportation {
 			updatePc.updateObject();
 		}
 
-		pc.setTeleport(false);
-
 		if (pc.hasSkillEffect(WIND_SHACKLE)) {
 			pc.sendPackets(new S_SkillIconWindShackle(pc.getId(), pc.getSkillEffectTimeSec(WIND_SHACKLE)));
 		}
@@ -194,6 +202,14 @@ public class Teleportation {
 		// 離開旅館地圖，旅館鑰匙歸零
 		if (pc.getMapId() <= 10000 && pc.getInnKeyId() != 0) {
 			pc.setInnKeyId(0);
+		}
+		} catch (RuntimeException e) {
+			_log.log(Level.SEVERE, "Teleportation failed for character " + pc.getName()
+					+ " to (" + pc.getTeleportX() + ", " + pc.getTeleportY() + ", "
+					+ pc.getTeleportMapId() + ")", e);
+			throw e;
+		} finally {
+			pc.setTeleport(false);
 		}
 	}
 

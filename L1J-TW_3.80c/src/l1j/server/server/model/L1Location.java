@@ -14,6 +14,7 @@
  */
 package l1j.server.server.model;
 
+import l1j.server.Config;
 import l1j.server.server.model.map.L1Map;
 import l1j.server.server.model.map.L1WorldMap;
 import l1j.server.server.types.Point;
@@ -155,6 +156,32 @@ public class L1Location extends Point {
 	 *            ランダムテレポートか
 	 * @return 新しいLocation
 	 */
+	private static final int[] HEADING_TABLE_X = { 0, 1, 1, 1, 0, -1, -1, -1 };
+	private static final int[] HEADING_TABLE_Y = { -1, -1, 0, 1, 1, 1, 0, -1 };
+
+	private static boolean hasRandomTeleportExit(L1Map map, int x, int y) {
+		int requiredExitCount = Config.RANDOM_TELEPORT_MIN_EXIT_COUNT;
+		if (requiredExitCount <= 0) {
+			return true;
+		}
+
+		int exitCount = 0;
+		for (int heading = 0; heading < HEADING_TABLE_X.length; heading++) {
+			int nextX = x + HEADING_TABLE_X[heading];
+			int nextY = y + HEADING_TABLE_Y[heading];
+			if (!map.isInMap(nextX, nextY)) {
+				continue;
+			}
+			if (map.isPassable(x, y, heading)) {
+				exitCount++;
+				if (exitCount >= requiredExitCount) {
+					return true;
+				}
+			}
+		}
+		return false;
+	}
+
 	public static L1Location randomLocation(L1Location baseLocation, int min, int max, boolean isRandomTeleport) {
 		if (min > max) {
 			throw new IllegalArgumentException("min > maxとなる引数は無効");
@@ -183,9 +210,9 @@ public class L1Location extends Point {
 
 		// map範囲
 		int mapX1 = map.getX();
-		int mapX2 = mapX1 + map.getWidth();
+		int mapX2 = mapX1 + map.getWidth() - 1;
 		int mapY1 = map.getY();
-		int mapY2 = mapY1 + map.getHeight();
+		int mapY2 = mapY1 + map.getHeight() - 1;
 
 		// 最大でもマップの範囲内までに補正
 		if (locX1 < mapX1) {
@@ -237,7 +264,8 @@ public class L1Location extends Point {
 				}
 			}
 
-			if (map.isInMap(newX, newY) && map.isPassable(newX, newY)) {
+			if (map.isInMap(newX, newY) && map.isPassable(newX, newY)
+					&& (!isRandomTeleport || hasRandomTeleportExit(map, newX, newY))) {
 				break;
 			}
 		}
