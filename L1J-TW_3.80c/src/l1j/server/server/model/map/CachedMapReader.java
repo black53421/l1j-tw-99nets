@@ -24,6 +24,8 @@ import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.util.Map;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 import l1j.server.server.datatables.MapsTable;
 import l1j.server.server.utils.collections.Maps;
@@ -32,6 +34,11 @@ import l1j.server.server.utils.collections.Maps;
  * 將地圖做快取的動作以減少讀取的時間。
  */
 public class CachedMapReader extends MapReader {
+
+	/** Map loading diagnostics. Disable after troubleshooting if desired. */
+	private static final boolean DEBUG_MAP_LOAD = true;
+
+	private static final Logger _log = Logger.getLogger(CachedMapReader.class.getName());
 
 	/** 地圖檔的路徑 */
 	@SuppressWarnings("unused")
@@ -54,6 +61,9 @@ public class CachedMapReader extends MapReader {
 			file.mkdir();
 		}
 
+		//if (DEBUG_MAP_LOAD) {
+		//	_log.info("[MapLoad] mapId=" + mapId + " cache MISS; reading TXT ./maps/" + mapId + ".txt");
+		//}
 		L1V1Map map = (L1V1Map) new TextMapReader().read(mapId);
 
 		DataOutputStream out = new DataOutputStream(new BufferedOutputStream(
@@ -90,6 +100,10 @@ public class CachedMapReader extends MapReader {
 		if (!file.exists()) {
 			return cacheMap(mapId);
 		}
+		//if (DEBUG_MAP_LOAD) {
+		//	_log.info("[MapLoad] mapId=" + mapId + " cache HIT; reading " + file.getPath()
+		//			+ " (" + file.length() + " bytes)");
+		//}
 
 		DataInputStream in = new DataInputStream(new BufferedInputStream(
 				new FileInputStream(CACHE_DIR + mapId + ".map")));
@@ -135,7 +149,17 @@ public class CachedMapReader extends MapReader {
 	public Map<Integer, L1Map> read() throws IOException {
 		Map<Integer, L1Map> maps = Maps.newMap();
 		for (int id : TextMapReader.listMapIds()) {
-			maps.put(id, read(id));
+			try {
+				maps.put(id, read(id));
+			} catch (Exception e) {
+				_log.log(Level.SEVERE, "[MapLoad] FAILED mapId=" + id
+						+ ", txt=./maps/" + id + ".txt"
+						+ ", cache=" + CACHE_DIR + id + ".map", e);
+				if (e instanceof IOException) {
+					throw (IOException) e;
+				}
+				throw new IOException("[MapLoad] failed to load mapId=" + id, e);
+			}
 		}
 		return maps;
 	}

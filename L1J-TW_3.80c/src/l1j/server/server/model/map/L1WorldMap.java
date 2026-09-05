@@ -38,17 +38,23 @@ public class L1WorldMap {
 		PerformanceTimer timer = new PerformanceTimer();
 		System.out.print("loading map...");
 
+		MapReader reader = MapReader.getDefaultReader();
+		System.out.println(" [MapLoad] reader=" + reader.getClass().getSimpleName());
 		try {
-			_maps = MapReader.getDefaultReader().read();
+			_maps = reader.read();
 			if (_maps == null) {
 				throw new RuntimeException("地圖檔案讀取失敗...");
 			}
-		} catch (FileNotFoundException e) {  
-			System.out.println("提示: 地圖檔案缺失，請檢查330_maps.zip是否尚未解壓縮。"); 
+		} catch (FileNotFoundException e) {
+			System.err.println("[MapLoad] FATAL FileNotFoundException: " + e.getMessage());
+			_log.log(Level.SEVERE, "[MapLoad] map loading aborted by "
+					+ reader.getClass().getSimpleName(), e);
+			System.err.println("提示: 請依上方 [MapLoad] 的 mapId/TXT/cache 訊息檢查實際缺失或不相容的地圖檔。");
 			System.exit(0);
 		} catch (Exception e) {
-			// 復帰不能
-			_log.log(Level.SEVERE, e.getLocalizedMessage(), e);
+			System.err.println("[MapLoad] FATAL " + e.getClass().getName() + ": " + e.getMessage());
+			_log.log(Level.SEVERE, "[MapLoad] map loading aborted by "
+					+ reader.getClass().getSimpleName(), e);
 			System.exit(0);
 		}
 

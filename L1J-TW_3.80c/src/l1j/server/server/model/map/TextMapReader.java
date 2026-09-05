@@ -71,28 +71,87 @@ public class TextMapReader extends MapReader {
 	 */
 	public byte[][] read(final int mapId, final int xSize, final int ySize)
 			throws IOException {
+		final File mapFile = new File(MAP_DIR + mapId + ".txt");
 		byte[][] map = new byte[xSize][ySize];
-		LineNumberReader in = new LineNumberReader(new BufferedReader(
-				new FileReader(MAP_DIR + mapId + ".txt")));
-
+		LineNumberReader in = null;
 		int y = 0;
-		String line;
-		while ((line = in.readLine()) != null) {
-			if ((line.trim().length() == 0) || line.startsWith("#")) {
-				continue; // 跳過空行與註解
-			}
+		int widthMismatchRows = 0;
+		int firstWidthMismatchLine = -1;
+		int firstWidthMismatchActual = -1;
 
-			int x = 0;
-			StringTokenizer tok = new StringTokenizer(line, ",");
-			while (tok.hasMoreTokens()) {
-				byte tile = Byte.parseByte(tok.nextToken());
-				map[x][y] = tile;
+		try {
+			in = new LineNumberReader(new BufferedReader(new FileReader(mapFile)));
+			String line;
+			while ((line = in.readLine()) != null) {
+				if ((line.trim().length() == 0) || line.startsWith("#")) {
+					continue; // 跳過空行與註解
+				}
 
-				x++;
+				if (y >= ySize) {
+					throw new IOException("[MapLoad] mapId=" + mapId
+							+ " has too many data rows: expectedHeight=" + ySize
+							+ ", dataRow=" + y + ", fileLine=" + in.getLineNumber()
+							+ ", file=" + mapFile.getPath());
+				}
+
+				int x = 0;
+				StringTokenizer tok = new StringTokenizer(line, ",");
+				while (tok.hasMoreTokens()) {
+					if (x >= xSize) {
+						throw new IOException("[MapLoad] mapId=" + mapId
+								+ " row is too wide: expectedWidth=" + xSize
+								+ ", column=" + x + ", dataRow=" + y
+								+ ", fileLine=" + in.getLineNumber()
+								+ ", file=" + mapFile.getPath());
+					}
+
+					String tileText = tok.nextToken().trim();
+					try {
+						map[x][y] = Byte.parseByte(tileText);
+					} catch (NumberFormatException e) {
+						throw new IOException("[MapLoad] invalid tile value: mapId=" + mapId
+								+ ", value='" + tileText + "', column=" + x
+								+ ", dataRow=" + y + ", fileLine=" + in.getLineNumber()
+								+ ", expectedSize=" + xSize + "x" + ySize
+								+ ", file=" + mapFile.getPath(), e);
+					}
+					x++;
+				}
+
+				if (x != xSize) {
+					widthMismatchRows++;
+					if (firstWidthMismatchLine < 0) {
+						firstWidthMismatchLine = in.getLineNumber();
+						firstWidthMismatchActual = x;
+					}
+				}
+				y++;
 			}
-			y++;
+		} catch (FileNotFoundException e) {
+			throw new FileNotFoundException("[MapLoad] mapId=" + mapId
+					+ " TXT not found: " + mapFile.getPath()
+					+ ", expectedSize=" + xSize + "x" + ySize);
+		} finally {
+			if (in != null) {
+				try {
+					in.close();
+				} catch (IOException e) {
+					_log.log(Level.WARNING, "[MapLoad] failed to close " + mapFile.getPath(), e);
+				}
+			}
 		}
-		in.close();
+
+		if (y != ySize) {
+			_log.warning("[MapLoad] mapId=" + mapId + " height mismatch: expected="
+					+ ySize + ", actual=" + y + ", file=" + mapFile.getPath());
+		}
+		if (widthMismatchRows > 0) {
+			_log.warning("[MapLoad] mapId=" + mapId + " has " + widthMismatchRows
+					+ " short/uneven row(s): expectedWidth=" + xSize
+					+ ", firstMismatchFileLine=" + firstWidthMismatchLine
+					+ ", firstActualWidth=" + firstWidthMismatchActual
+					+ ", file=" + mapFile.getPath());
+		}
 		return map;
 	}
 
@@ -129,7 +188,8 @@ public class TextMapReader extends MapReader {
 				return map;
 			}
 		}
-		throw new FileNotFoundException("地圖編號: " + id);
+		throw new FileNotFoundException("[MapLoad] mapId=" + id
+				+ " is not defined in TextMapReader.MAP_INFO; txt=" + MAP_DIR + id + ".txt");
 	}
 
 	/**
