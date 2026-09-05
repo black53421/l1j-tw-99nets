@@ -110,6 +110,8 @@ public final class Config {
 
 	public static boolean SEND_PACKET_BEFORE_TELEPORT;
 
+	public static int RANDOM_TELEPORT_MIN_EXIT_COUNT;
+
 	public static boolean DETECT_DB_RESOURCE_LEAKS;
 	
 	public static boolean CmdActive;
@@ -512,6 +514,7 @@ public final class Config {
 			ALLOW_2PC = Boolean.parseBoolean(serverSettings.getProperty("Allow2PC", "true"));
 			LEVEL_DOWN_RANGE = Integer.parseInt(serverSettings.getProperty("LevelDownRange", "0"));
 			SEND_PACKET_BEFORE_TELEPORT = Boolean.parseBoolean(serverSettings.getProperty("SendPacketBeforeTeleport", "false"));
+			RANDOM_TELEPORT_MIN_EXIT_COUNT = Integer.parseInt(serverSettings.getProperty("RandomTeleportMinExitCount", "1"));
 			DETECT_DB_RESOURCE_LEAKS = Boolean.parseBoolean(serverSettings.getProperty("EnableDatabaseResourceLeaksDetection", "false"));
 			CmdActive = Boolean.parseBoolean(serverSettings.getProperty("CmdActive", "false"));
 			Announcements_Cycle_Time = Integer.parseInt(serverSettings.getProperty("AnnouncementsCycleTime", "10"));
@@ -819,6 +822,10 @@ public final class Config {
 	}
 
 	private static void validate() {
+		if (!IntRange.includes(Config.RANDOM_TELEPORT_MIN_EXIT_COUNT, 0, 8)) {
+			throw new IllegalStateException("RandomTeleportMinExitCount must be between 0 and 8.");
+		}
+
 		if (!IntRange.includes(Config.ALT_ITEM_DELETION_RANGE, 0, 5)) {
 			throw new IllegalStateException("ItemDeletionRange 的設定值超出範圍。");
 		}
@@ -874,6 +881,13 @@ public final class Config {
 		}
 		else if (pName.equalsIgnoreCase("SendPacketBeforeTeleport")) {
 			SEND_PACKET_BEFORE_TELEPORT = Boolean.parseBoolean(pValue);
+		}
+		else if (pName.equalsIgnoreCase("RandomTeleportMinExitCount")) {
+			int value = Integer.parseInt(pValue);
+			if (!IntRange.includes(value, 0, 8)) {
+				return false;
+			}
+			RANDOM_TELEPORT_MIN_EXIT_COUNT = value;
 		}
 		else if (pName.equalsIgnoreCase("Punishment")) {
 			ILLEGAL_SPEEDUP_PUNISHMENT = Integer.parseInt(pValue);
