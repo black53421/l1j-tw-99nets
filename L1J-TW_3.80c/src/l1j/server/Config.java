@@ -182,6 +182,14 @@ public final class Config {
 
 	public static boolean ALT_ATKMSG;
 
+	public static boolean BATCH_ENCHANT_ENABLED;
+
+	public static int BATCH_ENCHANT_MAX_ITEMS;
+
+	public static int BATCH_ENCHANT_MAX_ATTEMPTS;
+
+	public static int BATCH_ENCHANT_ARM_TIMEOUT_SECONDS;
+
 	public static int NPC_BLOCKER_RETRY_COUNT;
 
 	public static boolean COMPANION_FOLLOW_QUEUE_ENABLED;
@@ -575,6 +583,26 @@ public final class Config {
 			LOOTING_RANGE = Integer.parseInt(altSettings.getProperty("LootingRange", "3"));
 			ALT_NONPVP = Boolean.parseBoolean(altSettings.getProperty("NonPvP", "true"));
 			ALT_ATKMSG = Boolean.parseBoolean(altSettings.getProperty("AttackMessageOn", "true"));
+			BATCH_ENCHANT_ENABLED = Boolean.parseBoolean(
+					altSettings.getProperty("BatchEnchantEnabled", "false"));
+			BATCH_ENCHANT_MAX_ITEMS = Integer.parseInt(
+					altSettings.getProperty("BatchEnchantMaxItems", "30"));
+			BATCH_ENCHANT_MAX_ATTEMPTS = Integer.parseInt(
+					altSettings.getProperty("BatchEnchantMaxAttempts", "300"));
+			BATCH_ENCHANT_ARM_TIMEOUT_SECONDS = Integer.parseInt(
+					altSettings.getProperty("BatchEnchantArmTimeoutSeconds", "30"));
+			if (BATCH_ENCHANT_MAX_ITEMS < 1) {
+				_log.warning("BatchEnchantMaxItems must be 1 or greater. Using default value 30.");
+				BATCH_ENCHANT_MAX_ITEMS = 30;
+			}
+			if (BATCH_ENCHANT_MAX_ATTEMPTS < 1) {
+				_log.warning("BatchEnchantMaxAttempts must be 1 or greater. Using default value 300.");
+				BATCH_ENCHANT_MAX_ATTEMPTS = 300;
+			}
+			if (BATCH_ENCHANT_ARM_TIMEOUT_SECONDS < 1) {
+				_log.warning("BatchEnchantArmTimeoutSeconds must be 1 or greater. Using default value 30.");
+				BATCH_ENCHANT_ARM_TIMEOUT_SECONDS = 30;
+			}
 			NPC_BLOCKER_RETRY_COUNT = Integer.parseInt(altSettings.getProperty("NpcBlockerRetryCount", "3"));
 			if (NPC_BLOCKER_RETRY_COUNT < 0) {
 				_log.warning("NpcBlockerRetryCount must be 0 or greater. Using default value 3.");

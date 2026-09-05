@@ -38,6 +38,7 @@ import l1j.server.server.model.Instance.L1DollInstance;
 import l1j.server.server.model.Instance.L1FollowerInstance;
 import l1j.server.server.model.Instance.L1NpcInstance;
 import l1j.server.server.model.Instance.L1PcInstance;
+import l1j.server.server.model.item.action.BatchEnchantService;
 import l1j.server.server.model.Instance.L1PetInstance;
 import l1j.server.server.model.Instance.L1SummonInstance;
 import l1j.server.server.serverpackets.S_Disconnect;
@@ -525,6 +526,7 @@ public class ClientThread implements Runnable, PacketOutput {
 	}
 
 	public static void quitGame(L1PcInstance pc) {
+		BatchEnchantService.clear(pc);
 		// 如果死掉回到城中，設定飽食度
 		if (pc.isDead()) {
 			try {

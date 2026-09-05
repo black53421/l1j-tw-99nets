@@ -27,6 +27,7 @@ import l1j.server.server.model.L1Object;
 import l1j.server.server.model.L1World;
 import l1j.server.server.model.Instance.L1MonsterInstance;
 import l1j.server.server.model.Instance.L1PcInstance;
+import l1j.server.server.model.item.action.BatchEnchantService;
 import l1j.server.server.serverpackets.S_ChatPacket;
 import l1j.server.server.serverpackets.S_NpcChatPacket;
 import l1j.server.server.serverpackets.S_HPMeter;
@@ -265,6 +266,10 @@ public class C_Chat extends ClientBasePacket {
 		}
 		if (command.equalsIgnoreCase("hpbar")) {
 			handleMonsterHpBarCommand(pc, arg);
+			return true;
+		}
+		if (command.equalsIgnoreCase("eb")) {
+			BatchEnchantService.handleCommand(pc, arg);
 			return true;
 		}
 		return false;

@@ -76,6 +76,7 @@ import l1j.server.server.model.Instance.L1TowerInstance;
 import l1j.server.server.model.identity.L1ItemId;
 import l1j.server.server.model.item.L1TreasureBox;
 import l1j.server.server.model.item.action.Effect;
+import l1j.server.server.model.item.action.BatchEnchantService;
 import l1j.server.server.model.item.action.Enchant;
 import l1j.server.server.model.item.action.FurnitureItem;
 import l1j.server.server.model.item.action.MagicDoll;
@@ -278,6 +279,9 @@ public class C_ItemUSe extends ClientBasePacket {
 
 			L1ItemInstance l1iteminstance1 = pc.getInventory().getItem(l);
 			_log.finest("request item use (obj) = " + itemObjid + " action = " + l + " value = " + s);
+			if (BatchEnchantService.tryHandle(pc, l1iteminstance, l1iteminstance1, client)) {
+				return;
+			}
 			if ((itemId == 40077) || (itemId == L1ItemId.SCROLL_OF_ENCHANT_WEAPON) || (itemId == L1ItemId.SCROLL_OF_ENCHANT_QUEST_WEAPON)
 					|| (itemId == 40130) || (itemId == 140130) || (itemId == L1ItemId.B_SCROLL_OF_ENCHANT_WEAPON)
 					|| (itemId == L1ItemId.C_SCROLL_OF_ENCHANT_WEAPON) || (itemId == 40128)) { // 對武器施法的卷軸
