@@ -285,7 +285,7 @@ public class L1Inventory extends L1Object {
 	 *            - 削除する個数
 	 * @return 実際に削除された場合はtrueを返す。
 	 */
-	public boolean consumeItem(int itemid, int count) {
+	public synchronized boolean consumeItem(int itemid, int count) {
 		if (count <= 0) {
 			return false;
 		}
@@ -322,17 +322,20 @@ public class L1Inventory extends L1Object {
 	}
 
 	// 指定したアイテムから指定個数を削除（使ったりゴミ箱に捨てられたとき）戻り値：実際に削除した数
-	public int removeItem(int objectId, int count) {
+	public synchronized int removeItem(int objectId, int count) {
 		L1ItemInstance item = getItem(objectId);
 		return removeItem(item, count);
 	}
 
-	public int removeItem(L1ItemInstance item) {
+	public synchronized int removeItem(L1ItemInstance item) {
+		if (item == null) {
+			return 0;
+		}
 		return removeItem(item, item.getCount());
 	}
 
-	public int removeItem(L1ItemInstance item, int count) {
-		if (item == null) {
+	public synchronized int removeItem(L1ItemInstance item, int count) {
+		if (item == null || !_items.contains(item)) {
 			return 0;
 		}
 		if ((item.getCount() <= 0) || (count <= 0)) {
@@ -601,7 +604,7 @@ public class L1Inventory extends L1Object {
 
 	// 強化された特定のアイテムを消費する
 	// 装備中のアイテムは所持していないと判別する
-	public boolean consumeEnchantItem(int id, int enchant, int count) {
+	public synchronized boolean consumeEnchantItem(int id, int enchant, int count) {
 		for (L1ItemInstance item : _items) {
 			if (item.isEquipped()) { // 装備しているものは該当しない
 				continue;

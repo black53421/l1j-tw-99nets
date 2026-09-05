@@ -295,11 +295,9 @@ public class ClientThread implements Runnable, PacketOutput {
 				// 以降、PacketHandlerの処理状況がClientThreadに影響を与えないようにする為の処理
 				// 目的はOpcodeの取捨選択とClientThreadとPacketHandlerの切り離し
 
-				// 要處理的 OPCODE
-				// 切換角色、丟道具到地上、刪除身上道具
-				if (opcode == Opcodes.C_OPCODE_CHANGECHAR
-						|| opcode == Opcodes.C_OPCODE_DROPITEM
-						|| opcode == Opcodes.C_OPCODE_DELETEINVENTORYITEM) {
+				// Character switching must still be handled immediately.
+				// Inventory mutations are serialized with other item actions through hcPacket.
+				if (opcode == Opcodes.C_OPCODE_CHANGECHAR) {
 					_handler.handlePacket(data, _activeChar);
 				} else if (opcode == Opcodes.C_OPCODE_MOVECHAR) {
 					// 為了確保即時的移動，將移動的封包獨立出來處理
