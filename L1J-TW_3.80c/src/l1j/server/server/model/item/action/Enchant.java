@@ -33,6 +33,11 @@ public class Enchant {
 	// 對武器施法的卷軸
 	public static void scrollOfEnchantWeapon(L1PcInstance pc, L1ItemInstance l1iteminstance
 			, L1ItemInstance l1iteminstance1, ClientThread client) {
+		scrollOfEnchantWeapon(pc, l1iteminstance, l1iteminstance1, client, true);
+	}
+
+	public static void scrollOfEnchantWeapon(L1PcInstance pc, L1ItemInstance l1iteminstance
+			, L1ItemInstance l1iteminstance1, ClientThread client, boolean sendFeedback) {
 		int itemId = l1iteminstance.getItem().getItemId();
 		int safe_enchant = l1iteminstance1.getItem().get_safeenchant();
 		int weaponId = l1iteminstance1.getItem().getItemId();
@@ -78,13 +83,13 @@ public class Enchant {
 			pc.getInventory().removeItem(l1iteminstance, 1);
 			if (enchant_level < -6) {
 				// -7以上失敗。
-				FailureEnchant(pc, l1iteminstance1);
+				FailureEnchant(pc, l1iteminstance1, sendFeedback);
 			} else {
-				SuccessEnchant(pc, l1iteminstance1, client, -1);
+				SuccessEnchant(pc, l1iteminstance1, client, -1, sendFeedback);
 			}
 		} else if (enchant_level < safe_enchant) { // 強化等級小於安定值
 			pc.getInventory().removeItem(l1iteminstance, 1);
-			SuccessEnchant(pc, l1iteminstance1, client, RandomELevel(l1iteminstance1, itemId));
+			SuccessEnchant(pc, l1iteminstance1, client, RandomELevel(l1iteminstance1, itemId), sendFeedback);
 		} else {
 			pc.getInventory().removeItem(l1iteminstance, 1);
 
@@ -99,12 +104,14 @@ public class Enchant {
 
 			if (rnd < enchant_chance_wepon) {
 				int randomEnchantLevel = RandomELevel(l1iteminstance1, itemId);
-				SuccessEnchant(pc, l1iteminstance1, client, randomEnchantLevel);
+				SuccessEnchant(pc, l1iteminstance1, client, randomEnchantLevel, sendFeedback);
 			} else if ((enchant_level >= 9) && (rnd < (enchant_chance_wepon * 2))) {
 				// \f1%0%s 持續發出 產生激烈的 藍色的 光芒，但是沒有任何事情發生。
-				pc.sendPackets(new S_ServerMessage(160, l1iteminstance1.getLogName(), "$245", "$248"));
+				if (sendFeedback) {
+					pc.sendPackets(new S_ServerMessage(160, l1iteminstance1.getLogName(), "$245", "$248"));
+				}
 			} else {
-				FailureEnchant(pc, l1iteminstance1);
+				FailureEnchant(pc, l1iteminstance1, sendFeedback);
 			}
 		}
 	}
@@ -112,6 +119,11 @@ public class Enchant {
 	// 對盔甲施法的卷軸
 	public static void scrollOfEnchantArmor(L1PcInstance pc, L1ItemInstance l1iteminstance
 			, L1ItemInstance l1iteminstance1, ClientThread client) {
+		scrollOfEnchantArmor(pc, l1iteminstance, l1iteminstance1, client, true);
+	}
+
+	public static void scrollOfEnchantArmor(L1PcInstance pc, L1ItemInstance l1iteminstance
+			, L1ItemInstance l1iteminstance1, ClientThread client, boolean sendFeedback) {
 		int itemId = l1iteminstance.getItem().getItemId();
 		int safe_enchant = ((L1Armor) l1iteminstance1.getItem()).get_safeenchant();
 		int armorId = l1iteminstance1.getItem().getItemId();
@@ -146,13 +158,13 @@ public class Enchant {
 			pc.getInventory().removeItem(l1iteminstance, 1);
 			if (enchant_level < -6) {
 				// -7以上失敗。
-				FailureEnchant(pc, l1iteminstance1);
+				FailureEnchant(pc, l1iteminstance1, sendFeedback);
 			} else {
-				SuccessEnchant(pc, l1iteminstance1, client, -1);
+				SuccessEnchant(pc, l1iteminstance1, client, -1, sendFeedback);
 			}
 		} else if (enchant_level < safe_enchant) { // 強化等級小於安定值
 			pc.getInventory().removeItem(l1iteminstance, 1);
-			SuccessEnchant(pc, l1iteminstance1, client, RandomELevel(l1iteminstance1, itemId));
+			SuccessEnchant(pc, l1iteminstance1, client, RandomELevel(l1iteminstance1, itemId), sendFeedback);
 		} else {
 			pc.getInventory().removeItem(l1iteminstance, 1);
 			int rnd = Random.nextInt(100) + 1;
@@ -171,13 +183,15 @@ public class Enchant {
 
 			if (rnd < enchant_chance_armor) {
 				int randomEnchantLevel = RandomELevel(l1iteminstance1, itemId);
-				SuccessEnchant(pc, l1iteminstance1, client, randomEnchantLevel);
+				SuccessEnchant(pc, l1iteminstance1, client, randomEnchantLevel, sendFeedback);
 			}
 			else if ((enchant_level >= 9) && (rnd < (enchant_chance_armor * 2))) {
 				// \f1%0%s 持續發出 產生激烈的 銀色的 光芒，但是沒有任何事情發生。
-				pc.sendPackets(new S_ServerMessage(160, l1iteminstance1.getLogName(), "$252", "$248"));
+				if (sendFeedback) {
+					pc.sendPackets(new S_ServerMessage(160, l1iteminstance1.getLogName(), "$252", "$248"));
+				}
 			} else {
-				FailureEnchant(pc, l1iteminstance1);
+				FailureEnchant(pc, l1iteminstance1, sendFeedback);
 			}
 		}
 	}
@@ -412,6 +426,11 @@ public class Enchant {
 
 	// 強化成功
 	private static void SuccessEnchant(L1PcInstance pc, L1ItemInstance item, ClientThread client, int i) {
+		SuccessEnchant(pc, item, client, i, true);
+	}
+
+	private static void SuccessEnchant(L1PcInstance pc, L1ItemInstance item, ClientThread client, int i,
+			boolean sendFeedback) {
 		int itemType2 = item.getItem().getType2();
 
 		String[][] sa = { {"", "", "", "", ""}
@@ -423,15 +442,17 @@ public class Enchant {
 		String sa_temp = sa[itemType2][i + 1];
 		String sb_temp = sb[itemType2][i + 1];
 
-		pc.sendPackets(new S_ServerMessage(161, item.getLogName(), sa_temp, sb_temp));
+		if (sendFeedback) {
+			pc.sendPackets(new S_ServerMessage(161, item.getLogName(), sa_temp, sb_temp));
+		}
 		int oldEnchantLvl = item.getEnchantLevel();
 		int newEnchantLvl = oldEnchantLvl + i;
 		int safe_enchant = item.getItem().get_safeenchant();
 		item.setEnchantLevel(newEnchantLvl);
-		client.getActiveChar().getInventory().updateItem(item, L1PcInventory.COL_ENCHANTLVL);
+		pc.getInventory().updateItem(item, L1PcInventory.COL_ENCHANTLVL);
 
 		if (newEnchantLvl > safe_enchant) {
-			client.getActiveChar().getInventory().saveItem(item, L1PcInventory.COL_ENCHANTLVL);
+			pc.getInventory().saveItem(item, L1PcInventory.COL_ENCHANTLVL);
 		}
 		if ((item.getItem().getType2() == 1) && (Config.LOGGING_WEAPON_ENCHANT != 0)) {
 			if ((safe_enchant == 0) || (newEnchantLvl >= Config.LOGGING_WEAPON_ENCHANT)) {
@@ -479,13 +500,19 @@ public class Enchant {
 
 	// 強化失敗
 	private static void FailureEnchant(L1PcInstance pc, L1ItemInstance item) {
+		FailureEnchant(pc, item, true);
+	}
+
+	private static void FailureEnchant(L1PcInstance pc, L1ItemInstance item, boolean sendFeedback) {
 		String[] sa = {"", "$245", "$252"}; // ""、藍色的、銀色的
 		int itemType2 = item.getItem().getType2();
 
 		if (item.getEnchantLevel() < 0) { // 強化等級為負值
 			 sa[itemType2] = "$246"; // 黑色的
 		}
-		pc.sendPackets(new S_ServerMessage(164, item.getLogName(), sa[itemType2])); // \f1%0%s 強烈的發出%1光芒就消失了。
+		if (sendFeedback) {
+			pc.sendPackets(new S_ServerMessage(164, item.getLogName(), sa[itemType2])); // \f1%0%s 強烈的發出%1光芒就消失了。
+		}
 		pc.getInventory().removeItem(item, item.getCount());
 	}
 

@@ -191,6 +191,11 @@ public final class Config {
 	public static int BATCH_ENCHANT_ARM_TIMEOUT_SECONDS;
 
 	public static boolean BATCH_ENCHANT_LOCK_INVENTORY_ACTIONS;
+	public static boolean BATCH_ENCHANT_ALLOW_BLESSED_SCROLL;
+	public static boolean BATCH_ENCHANT_ALLOW_CURSED_SCROLL;
+	public static int BATCH_ENCHANT_MAX_CONCURRENT_JOBS;
+	public static int BATCH_ENCHANT_RISKY_ATTEMPT_DELAY_MILLIS;
+	public static int BATCH_ENCHANT_ITEM_DELAY_MILLIS;
 
 	public static int NPC_BLOCKER_RETRY_COUNT;
 
@@ -595,6 +600,16 @@ public final class Config {
 					altSettings.getProperty("BatchEnchantArmTimeoutSeconds", "30"));
 			BATCH_ENCHANT_LOCK_INVENTORY_ACTIONS = Boolean.parseBoolean(
 					altSettings.getProperty("BatchEnchantLockInventoryActions", "true"));
+			BATCH_ENCHANT_ALLOW_BLESSED_SCROLL = Boolean.parseBoolean(
+					altSettings.getProperty("BatchEnchantAllowBlessedScroll", "true"));
+			BATCH_ENCHANT_ALLOW_CURSED_SCROLL = Boolean.parseBoolean(
+					altSettings.getProperty("BatchEnchantAllowCursedScroll", "true"));
+			BATCH_ENCHANT_MAX_CONCURRENT_JOBS = Integer.parseInt(
+					altSettings.getProperty("BatchEnchantMaxConcurrentJobs", "2"));
+			BATCH_ENCHANT_RISKY_ATTEMPT_DELAY_MILLIS = Integer.parseInt(
+					altSettings.getProperty("BatchEnchantRiskyAttemptDelayMillis", "15"));
+			BATCH_ENCHANT_ITEM_DELAY_MILLIS = Integer.parseInt(
+					altSettings.getProperty("BatchEnchantItemDelayMillis", "10"));
 			if (BATCH_ENCHANT_MAX_ITEMS < 1) {
 				_log.warning("BatchEnchantMaxItems must be 1 or greater. Using default value 30.");
 				BATCH_ENCHANT_MAX_ITEMS = 30;
@@ -606,6 +621,18 @@ public final class Config {
 			if (BATCH_ENCHANT_ARM_TIMEOUT_SECONDS < 1) {
 				_log.warning("BatchEnchantArmTimeoutSeconds must be 1 or greater. Using default value 30.");
 				BATCH_ENCHANT_ARM_TIMEOUT_SECONDS = 30;
+			}
+			if (BATCH_ENCHANT_MAX_CONCURRENT_JOBS < 1) {
+				_log.warning("BatchEnchantMaxConcurrentJobs must be 1 or greater. Using default value 2.");
+				BATCH_ENCHANT_MAX_CONCURRENT_JOBS = 2;
+			}
+			if (BATCH_ENCHANT_RISKY_ATTEMPT_DELAY_MILLIS < 0) {
+				_log.warning("BatchEnchantRiskyAttemptDelayMillis must be 0 or greater. Using default value 15.");
+				BATCH_ENCHANT_RISKY_ATTEMPT_DELAY_MILLIS = 15;
+			}
+			if (BATCH_ENCHANT_ITEM_DELAY_MILLIS < 0) {
+				_log.warning("BatchEnchantItemDelayMillis must be 0 or greater. Using default value 10.");
+				BATCH_ENCHANT_ITEM_DELAY_MILLIS = 10;
 			}
 			NPC_BLOCKER_RETRY_COUNT = Integer.parseInt(altSettings.getProperty("NpcBlockerRetryCount", "3"));
 			if (NPC_BLOCKER_RETRY_COUNT < 0) {

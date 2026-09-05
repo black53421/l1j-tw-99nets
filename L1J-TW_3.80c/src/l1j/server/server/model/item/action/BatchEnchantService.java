@@ -4,10 +4,13 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.Semaphore;
+import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import l1j.server.Config;
 import l1j.server.server.ClientThread;
+import l1j.server.server.GeneralThreadPool;
 import l1j.server.server.Opcodes;
 import l1j.server.server.datatables.LogEnchantTable;
 import l1j.server.server.model.L1PcInventory;
@@ -17,10 +20,11 @@ import l1j.server.server.model.identity.L1ItemId;
 import l1j.server.server.serverpackets.S_SystemMessage;
 
 /**
- * Server-side batch enchant core.
+ * Server-side batch enchant service.
  *
- * Patch 0002 intentionally supports deterministic safe-zone fast-forward only.
- * Risky enchant is exposed as a single-step API for the later state-machine patch.
+ * Safe-zone normal-scroll ranges are fast-forwarded as one inventory update.
+ * Randomized or risky ranges are executed one scroll at a time through the
+ * original Enchant implementation and paced asynchronously.
  */
 public final class BatchEnchantService {
 
@@ -64,12 +68,391 @@ public final class BatchEnchantService {
 	private static final class Session {
 		private final int _targetLevel;
 		private final int _maxItems;
+		private final boolean _useBlessed;
+		private final boolean _useCursed;
 		private final long _createdAt;
 
-		private Session(int targetLevel, int maxItems) {
+		private Session(int targetLevel, int maxItems, boolean useBlessed, boolean useCursed) {
 			_targetLevel = targetLevel;
 			_maxItems = maxItems;
+			_useBlessed = useBlessed;
+			_useCursed = useCursed;
 			_createdAt = System.currentTimeMillis();
+		}
+	}
+
+	private static final class BatchJob implements Runnable {
+		private final L1PcInstance _pc;
+		private final ClientThread _client;
+		private final Session _session;
+		private final List<Integer> _candidateIds;
+		private final int _normalScrollItemId;
+		private final Semaphore _jobSlots;
+
+		private int _candidateIndex;
+		private int _attempts;
+		private int _processed;
+		private int _reached;
+		private int _destroyed;
+		private int _invalid;
+		private int _normalUsed;
+		private int _blessedUsed;
+		private int _cursedUsed;
+		private boolean _currentItemCounted;
+		private boolean _cursedRollbackPending;
+		private volatile boolean _finished;
+
+		private BatchJob(L1PcInstance pc, ClientThread client, Session session,
+				List<Integer> candidateIds, int normalScrollItemId, Semaphore jobSlots) {
+			_pc = pc;
+			_client = client;
+			_session = session;
+			_candidateIds = candidateIds;
+			_normalScrollItemId = normalScrollItemId;
+			_jobSlots = jobSlots;
+		}
+
+		@Override
+		public void run() {
+			if (_finished) {
+				return;
+			}
+			try {
+				runStep();
+			} catch (Exception e) {
+				_log.log(Level.SEVERE, "[BatchEnchant] job failed for " + _pc.getName(), e);
+				finish("exception");
+			}
+		}
+
+		private void runStep() {
+			if (isCancelRequested(_pc)) {
+				finish("cancelled");
+				return;
+			}
+			if (!isSameActiveCharacter(_pc, _client)) {
+				finish("player-offline");
+				return;
+			}
+			if (_candidateIndex >= _candidateIds.size()) {
+				finish("completed");
+				return;
+			}
+			if (_attempts >= Config.BATCH_ENCHANT_MAX_ATTEMPTS) {
+				finish("attempt-limit");
+				return;
+			}
+
+			int itemObjectId = _candidateIds.get(_candidateIndex).intValue();
+			L1ItemInstance item = getCurrentItem(itemObjectId);
+			if (item == null) {
+				_invalid++;
+				moveToNextItem(0L);
+				return;
+			}
+
+			int currentLevel = item.getEnchantLevel();
+			int safeEnchant = item.getItem().get_safeenchant();
+			if (currentLevel >= _session._targetLevel) {
+				_reached++;
+				moveToNextItem(Config.BATCH_ENCHANT_ITEM_DELAY_MILLIS);
+				return;
+			}
+
+			if (_cursedRollbackPending) {
+				if (currentLevel != safeEnchant) {
+					finish("cursed-rollback-state-changed");
+					return;
+				}
+				executeCursedRollback(itemObjectId, item);
+				return;
+			}
+
+			boolean blessedStrategy = shouldUseBlessedStrategy(safeEnchant);
+			int fastForwardEnd = blessedStrategy
+					? Math.min(_session._targetLevel, safeEnchant - 1)
+					: Math.min(_session._targetLevel, safeEnchant);
+
+			if (currentLevel < fastForwardEnd) {
+				executeSafeFastForward(itemObjectId, fastForwardEnd);
+				return;
+			}
+
+			if (blessedStrategy && currentLevel == safeEnchant - 1) {
+				executeBlessedAttempt(itemObjectId, item, safeEnchant);
+				return;
+			}
+
+			executeNormalRiskyAttempt(itemObjectId, item);
+		}
+
+		private boolean shouldUseBlessedStrategy(int safeEnchant) {
+			return _session._useBlessed && safeEnchant > 0
+					&& _session._targetLevel >= safeEnchant + 1;
+		}
+
+		private void executeSafeFastForward(int itemObjectId, int fastForwardEnd) {
+			int remainingBudget = Config.BATCH_ENCHANT_MAX_ATTEMPTS - _attempts;
+			if (remainingBudget <= 0) {
+				finish("attempt-limit");
+				return;
+			}
+
+			int scrollObjectId = findScrollObjectId(_pc.getInventory(), _normalScrollItemId);
+			if (scrollObjectId == 0) {
+				finish("normal-scroll-exhausted");
+				return;
+			}
+
+			FastForwardResult result = fastForwardSafeEnchant(_pc, scrollObjectId, itemObjectId,
+					fastForwardEnd, remainingBudget);
+			if (result.getSteps() <= 0) {
+				if ("target-reached".equals(result.getStopReason())) {
+					scheduleNext(0L);
+					return;
+				}
+				if ("scroll-exhausted".equals(result.getStopReason())) {
+					finish("normal-scroll-exhausted");
+					return;
+				}
+				finish(result.getStopReason());
+				return;
+			}
+
+			countCurrentItemIfNeeded();
+			_attempts += result.getSteps();
+			_normalUsed += result.getSteps();
+			if (_attempts >= Config.BATCH_ENCHANT_MAX_ATTEMPTS
+					&& result.getFinalLevel() < _session._targetLevel) {
+				finish("attempt-limit");
+				return;
+			}
+			if (result.getFinalLevel() >= _session._targetLevel) {
+				_reached++;
+				moveToNextItem(Config.BATCH_ENCHANT_ITEM_DELAY_MILLIS);
+				return;
+			}
+			scheduleNext(0L);
+		}
+
+		private void executeBlessedAttempt(int itemObjectId, L1ItemInstance item, int safeEnchant) {
+			int remainingBudget = Config.BATCH_ENCHANT_MAX_ATTEMPTS - _attempts;
+			if (remainingBudget <= 0 || (_session._useCursed && remainingBudget < 2)) {
+				finish("attempt-limit");
+				return;
+			}
+			if (!Config.BATCH_ENCHANT_ALLOW_BLESSED_SCROLL) {
+				finish("blessed-disabled");
+				return;
+			}
+			int blessedItemId = getBlessedScrollItemId(item.getItem().getType2());
+			int scrollObjectId = findScrollObjectId(_pc.getInventory(), blessedItemId);
+			if (scrollObjectId == 0) {
+				finish("blessed-scroll-exhausted");
+				return;
+			}
+
+			int oldLevel = item.getEnchantLevel();
+			RiskyEnchantResult result = enchantRiskyOnce(_pc, scrollObjectId, itemObjectId, _client, oldLevel);
+			if (result == RiskyEnchantResult.INVALID) {
+				finish("invalid");
+				return;
+			}
+
+			countCurrentItemIfNeeded();
+			_attempts++;
+			_blessedUsed++;
+			if (result == RiskyEnchantResult.DESTROYED) {
+				_destroyed++;
+				moveToNextItem(Config.BATCH_ENCHANT_ITEM_DELAY_MILLIS);
+				return;
+			}
+
+			L1ItemInstance current = getCurrentItem(itemObjectId);
+			if (current == null) {
+				_destroyed++;
+				moveToNextItem(Config.BATCH_ENCHANT_ITEM_DELAY_MILLIS);
+				return;
+			}
+			int newLevel = current.getEnchantLevel();
+			if (newLevel >= _session._targetLevel) {
+				_reached++;
+				moveToNextItem(Config.BATCH_ENCHANT_ITEM_DELAY_MILLIS);
+				return;
+			}
+			if (_session._useCursed && oldLevel == safeEnchant - 1 && newLevel == safeEnchant) {
+				_cursedRollbackPending = true;
+			}
+			scheduleNext(Config.BATCH_ENCHANT_RISKY_ATTEMPT_DELAY_MILLIS);
+		}
+
+		private void executeCursedRollback(int itemObjectId, L1ItemInstance item) {
+			if (!Config.BATCH_ENCHANT_ALLOW_CURSED_SCROLL) {
+				finish("cursed-disabled");
+				return;
+			}
+			int safeEnchant = item.getItem().get_safeenchant();
+			int cursedItemId = getCursedScrollItemId(item.getItem().getType2());
+			int scrollObjectId = findScrollObjectId(_pc.getInventory(), cursedItemId);
+			if (scrollObjectId == 0) {
+				finish("cursed-scroll-exhausted");
+				return;
+			}
+
+			RiskyEnchantResult result = enchantRiskyOnce(_pc, scrollObjectId, itemObjectId, _client, safeEnchant);
+			if (result == RiskyEnchantResult.INVALID) {
+				finish("invalid");
+				return;
+			}
+
+			countCurrentItemIfNeeded();
+			_attempts++;
+			_cursedUsed++;
+			if (result == RiskyEnchantResult.DESTROYED) {
+				_destroyed++;
+				moveToNextItem(Config.BATCH_ENCHANT_ITEM_DELAY_MILLIS);
+				return;
+			}
+
+			L1ItemInstance current = getCurrentItem(itemObjectId);
+			if (current == null) {
+				finish("cursed-rollback-item-missing");
+				return;
+			}
+			if (current.getEnchantLevel() != safeEnchant - 1) {
+				finish("cursed-rollback-failed");
+				return;
+			}
+			_cursedRollbackPending = false;
+			scheduleNext(Config.BATCH_ENCHANT_RISKY_ATTEMPT_DELAY_MILLIS);
+		}
+
+		private void executeNormalRiskyAttempt(int itemObjectId, L1ItemInstance item) {
+			int scrollObjectId = findScrollObjectId(_pc.getInventory(), _normalScrollItemId);
+			if (scrollObjectId == 0) {
+				finish("normal-scroll-exhausted");
+				return;
+			}
+
+			RiskyEnchantResult result = enchantRiskyOnce(_pc, scrollObjectId, itemObjectId, _client,
+					item.getEnchantLevel());
+			if (result == RiskyEnchantResult.INVALID) {
+				finish("invalid");
+				return;
+			}
+
+			countCurrentItemIfNeeded();
+			_attempts++;
+			_normalUsed++;
+			if (result == RiskyEnchantResult.DESTROYED) {
+				_destroyed++;
+				moveToNextItem(Config.BATCH_ENCHANT_ITEM_DELAY_MILLIS);
+				return;
+			}
+
+			L1ItemInstance current = getCurrentItem(itemObjectId);
+			if (current == null) {
+				_destroyed++;
+				moveToNextItem(Config.BATCH_ENCHANT_ITEM_DELAY_MILLIS);
+				return;
+			}
+			if (current.getEnchantLevel() >= _session._targetLevel) {
+				_reached++;
+				moveToNextItem(Config.BATCH_ENCHANT_ITEM_DELAY_MILLIS);
+				return;
+			}
+			scheduleNext(Config.BATCH_ENCHANT_RISKY_ATTEMPT_DELAY_MILLIS);
+		}
+
+		private L1ItemInstance getCurrentItem(int itemObjectId) {
+			L1PcInventory inventory = _pc.getInventory();
+			synchronized (inventory) {
+				L1ItemInstance item = inventory.getItem(itemObjectId);
+				if (item == null || !isSupportedBatchEquipment(item)) {
+					return null;
+				}
+				return item;
+			}
+		}
+
+		private void countCurrentItemIfNeeded() {
+			if (!_currentItemCounted) {
+				_processed++;
+				_currentItemCounted = true;
+			}
+		}
+
+		private void moveToNextItem(long delayMillis) {
+			_candidateIndex++;
+			_currentItemCounted = false;
+			_cursedRollbackPending = false;
+			scheduleNext(delayMillis);
+		}
+
+		private void scheduleNext(long delayMillis) {
+			if (_finished) {
+				return;
+			}
+			final BatchJob job = this;
+			if (delayMillis <= 0L) {
+				dispatchNow();
+				return;
+			}
+			if (GeneralThreadPool.getInstance().schedule(new Runnable() {
+				@Override
+				public void run() {
+					job.dispatchNow();
+				}
+			}, delayMillis) == null) {
+				finish("scheduler-rejected");
+			}
+		}
+
+		private void dispatchNow() {
+			if (_finished) {
+				return;
+			}
+			try {
+				GeneralThreadPool.getInstance().execute(this);
+			} catch (RuntimeException e) {
+				_log.log(Level.WARNING, "[BatchEnchant] executor rejected job for " + _pc.getName(), e);
+				finish("executor-rejected");
+			}
+		}
+
+		private synchronized void finish(String stopReason) {
+			if (_finished) {
+				return;
+			}
+			_finished = true;
+			Integer key = Integer.valueOf(_pc.getId());
+			_busyPlayers.remove(key);
+			_cancelRequested.remove(key);
+			_busyNoticeTimes.remove(key);
+			_jobSlots.release();
+
+			String summary = "Batch enchant completed: processed=" + _processed
+					+ ", reached=" + _reached
+					+ ", destroyed=" + _destroyed
+					+ ", invalid=" + _invalid
+					+ ", normal=" + _normalUsed
+					+ ", blessed=" + _blessedUsed
+					+ ", cursed=" + _cursedUsed
+					+ ", attempts=" + _attempts
+					+ ", stop=" + stopReason + ".";
+			if (isSameActiveCharacter(_pc, _client)) {
+				_pc.sendPackets(new S_SystemMessage(summary));
+			}
+			_log.info("[BatchEnchant] done char=" + _pc.getName()
+					+ ", processed=" + _processed
+					+ ", reached=" + _reached
+					+ ", destroyed=" + _destroyed
+					+ ", invalid=" + _invalid
+					+ ", normal=" + _normalUsed
+					+ ", blessed=" + _blessedUsed
+					+ ", cursed=" + _cursedUsed
+					+ ", attempts=" + _attempts
+					+ ", stop=" + stopReason);
 		}
 	}
 
@@ -79,6 +462,8 @@ public final class BatchEnchantService {
 	private static final Map<Integer, Boolean> _cancelRequested = new ConcurrentHashMap<Integer, Boolean>();
 	private static final Map<Integer, Long> _busyNoticeTimes = new ConcurrentHashMap<Integer, Long>();
 	private static final long BUSY_NOTICE_INTERVAL_MILLIS = 500L;
+	private static Semaphore _jobSlots;
+	private static int _jobSlotCount;
 
 	private BatchEnchantService() {
 	}
@@ -108,7 +493,9 @@ public final class BatchEnchantService {
 				pc.sendPackets(new S_SystemMessage("Batch enchant status: RUNNING"));
 			} else if (session != null) {
 				pc.sendPackets(new S_SystemMessage("Batch enchant status: ARMED, target +"
-						+ session._targetLevel + ", max items " + session._maxItems));
+						+ session._targetLevel + ", max items " + session._maxItems
+						+ ", blessed=" + flag(session._useBlessed)
+						+ ", cursed=" + flag(session._useCursed)));
 			} else {
 				pc.sendPackets(new S_SystemMessage("Batch enchant status: OFF"));
 			}
@@ -116,17 +503,23 @@ public final class BatchEnchantService {
 		}
 
 		String[] tokens = command.split("\\s+");
-		if (tokens.length != 2) {
+		if (tokens.length != 2 && tokens.length != 4) {
 			sendUsage(pc);
 			return;
 		}
 
 		int targetLevel;
 		int maxItems;
+		boolean useBlessed = false;
+		boolean useCursed = false;
 		try {
 			targetLevel = Integer.parseInt(tokens[0]);
 			maxItems = Integer.parseInt(tokens[1]);
-		} catch (NumberFormatException e) {
+			if (tokens.length == 4) {
+				useBlessed = parseFlag(tokens[2]);
+				useCursed = parseFlag(tokens[3]);
+			}
+		} catch (IllegalArgumentException e) {
 			sendUsage(pc);
 			return;
 		}
@@ -140,6 +533,18 @@ public final class BatchEnchantService {
 					+ Config.BATCH_ENCHANT_MAX_ITEMS + "."));
 			return;
 		}
+		if (useCursed && !useBlessed) {
+			pc.sendPackets(new S_SystemMessage("Cursed rollback requires blessed mode to be enabled."));
+			return;
+		}
+		if (useBlessed && !Config.BATCH_ENCHANT_ALLOW_BLESSED_SCROLL) {
+			pc.sendPackets(new S_SystemMessage("Blessed batch enchant is disabled by server configuration."));
+			return;
+		}
+		if (useCursed && !Config.BATCH_ENCHANT_ALLOW_CURSED_SCROLL) {
+			pc.sendPackets(new S_SystemMessage("Cursed rollback is disabled by server configuration."));
+			return;
+		}
 		if (isInventoryBusy(pc)) {
 			pc.sendPackets(new S_SystemMessage("Batch enchant is already running."));
 			return;
@@ -149,9 +554,13 @@ public final class BatchEnchantService {
 			return;
 		}
 
-		_sessions.put(Integer.valueOf(pc.getId()), new Session(targetLevel, maxItems));
+		_sessions.put(Integer.valueOf(pc.getId()),
+				new Session(targetLevel, maxItems, useBlessed, useCursed));
 		pc.sendPackets(new S_SystemMessage("Batch enchant armed: target +" + targetLevel
-				+ ", max items " + maxItems + ". Use a normal enchant scroll and select one equipment item."));
+				+ ", max items " + maxItems
+				+ ", blessed=" + flag(useBlessed)
+				+ ", cursed=" + flag(useCursed)
+				+ ". Use a normal enchant scroll and select one equipment item."));
 	}
 
 	public static boolean tryHandle(L1PcInstance pc, L1ItemInstance scroll, L1ItemInstance target,
@@ -160,7 +569,8 @@ public final class BatchEnchantService {
 			return false;
 		}
 
-		Session session = _sessions.get(Integer.valueOf(pc.getId()));
+		Integer playerKey = Integer.valueOf(pc.getId());
+		Session session = _sessions.get(playerKey);
 		if (session == null) {
 			return false;
 		}
@@ -178,7 +588,7 @@ public final class BatchEnchantService {
 			return true;
 		}
 		if (!isNormalEnchantScroll(scroll.getItem().getItemId())) {
-			pc.sendPackets(new S_SystemMessage("Patch 0002 batch mode accepts normal enchant scrolls only."));
+			pc.sendPackets(new S_SystemMessage("Start batch enchant with a normal enchant scroll."));
 			return true;
 		}
 		if (target == null || !scrollMatchesItemType(scroll.getItem().getItemId(), target)) {
@@ -189,27 +599,45 @@ public final class BatchEnchantService {
 			pc.sendPackets(new S_SystemMessage("The selected equipment cannot be batch enchanted."));
 			return true;
 		}
-
-		int safeEnchant = target.getItem().get_safeenchant();
-		if (session._targetLevel > safeEnchant) {
+		if (session._useBlessed && !Config.BATCH_ENCHANT_ALLOW_BLESSED_SCROLL) {
 			clear(pc);
-			pc.sendPackets(new S_SystemMessage("Patch 0002 supports safe-zone targets only. Selected item safe enchant is +"
-					+ safeEnchant + "."));
+			pc.sendPackets(new S_SystemMessage("Blessed batch enchant is disabled by server configuration."));
+			return true;
+		}
+		if (session._useCursed && !Config.BATCH_ENCHANT_ALLOW_CURSED_SCROLL) {
+			clear(pc);
+			pc.sendPackets(new S_SystemMessage("Cursed rollback is disabled by server configuration."));
 			return true;
 		}
 
-		Integer playerKey = Integer.valueOf(pc.getId());
+		Semaphore jobSlots = getJobSlots();
+		if (!jobSlots.tryAcquire()) {
+			pc.sendPackets(new S_SystemMessage("Batch enchant server slots are busy. Try the scroll again shortly."));
+			return true;
+		}
+
+		List<Integer> candidateIds = collectCandidateIds(pc.getInventory(), target.getId(),
+				session._targetLevel, session._maxItems);
+		if (candidateIds.isEmpty()) {
+			jobSlots.release();
+			clear(pc);
+			pc.sendPackets(new S_SystemMessage("No matching equipment needs batch enchant."));
+			return true;
+		}
+
 		_sessions.remove(playerKey);
 		_cancelRequested.remove(playerKey);
 		_busyPlayers.put(playerKey, Boolean.TRUE);
-		try {
-			executeSafeBatch(pc, scroll.getId(), target.getId(), session);
-		} finally {
-			Integer key = Integer.valueOf(pc.getId());
-			_busyPlayers.remove(key);
-			_cancelRequested.remove(key);
-			_busyNoticeTimes.remove(key);
-		}
+		_log.info("[BatchEnchant] start char=" + pc.getName()
+				+ ", target=" + session._targetLevel
+				+ ", maxItems=" + session._maxItems
+				+ ", candidates=" + candidateIds.size()
+				+ ", blessed=" + session._useBlessed
+				+ ", cursed=" + session._useCursed);
+
+		BatchJob job = new BatchJob(pc, client, session, candidateIds,
+				scroll.getItem().getItemId(), jobSlots);
+		job.dispatchNow();
 		return true;
 	}
 
@@ -285,11 +713,16 @@ public final class BatchEnchantService {
 	}
 
 	/**
-	 * Execute exactly one risky enchant attempt through the original Enchant logic.
-	 * This API is intentionally not used by the 0002 safe-only batch loop yet.
+	 * Execute exactly one standard enchant attempt through the original RNG logic.
+	 * The caller owns policy decisions such as safe-boundary blessed retries.
 	 */
 	public static RiskyEnchantResult enchantRiskyOnce(L1PcInstance pc, int scrollObjectId,
 			int itemObjectId, ClientThread client) {
+		return enchantRiskyOnce(pc, scrollObjectId, itemObjectId, client, Integer.MIN_VALUE);
+	}
+
+	private static RiskyEnchantResult enchantRiskyOnce(L1PcInstance pc, int scrollObjectId,
+			int itemObjectId, ClientThread client, int expectedEnchantLevel) {
 		if (pc == null || client == null) {
 			return RiskyEnchantResult.INVALID;
 		}
@@ -303,18 +736,17 @@ public final class BatchEnchantService {
 					|| !isSupportedBatchEquipment(item)) {
 				return RiskyEnchantResult.INVALID;
 			}
-
-			int safeEnchant = item.getItem().get_safeenchant();
-			if (item.getEnchantLevel() < safeEnchant) {
+			if (expectedEnchantLevel != Integer.MIN_VALUE
+					&& item.getEnchantLevel() != expectedEnchantLevel) {
 				return RiskyEnchantResult.INVALID;
 			}
 
 			int oldEnchant = item.getEnchantLevel();
 			int oldScrollCount = scroll.getCount();
 			if (item.getItem().getType2() == 1) {
-				Enchant.scrollOfEnchantWeapon(pc, scroll, item, client);
+				Enchant.scrollOfEnchantWeapon(pc, scroll, item, client, false);
 			} else if (item.getItem().getType2() == 2) {
-				Enchant.scrollOfEnchantArmor(pc, scroll, item, client);
+				Enchant.scrollOfEnchantArmor(pc, scroll, item, client, false);
 			} else {
 				return RiskyEnchantResult.INVALID;
 			}
@@ -392,56 +824,6 @@ public final class BatchEnchantService {
 		if (isInventoryBusy(pc)) {
 			_log.warning("[BatchEnchant] timed out waiting for batch shutdown: " + pc.getName());
 		}
-	}
-
-	private static void executeSafeBatch(L1PcInstance pc, int scrollObjectId, int templateObjectId,
-			Session session) {
-		L1PcInventory inventory = pc.getInventory();
-		List<Integer> candidateIds = collectCandidateIds(inventory, templateObjectId, session._targetLevel,
-				session._maxItems);
-		int processed = 0;
-		int reached = 0;
-		int attempts = 0;
-		String stopReason = "completed";
-
-		_log.info("[BatchEnchant] safe start char=" + pc.getName() + ", target=" + session._targetLevel
-				+ ", maxItems=" + session._maxItems + ", candidates=" + candidateIds.size());
-
-		for (Integer objectId : candidateIds) {
-			if (isCancelRequested(pc)) {
-				stopReason = "cancelled";
-				break;
-			}
-			int remainingBudget = Config.BATCH_ENCHANT_MAX_ATTEMPTS - attempts;
-			if (remainingBudget <= 0) {
-				stopReason = "attempt-limit";
-				break;
-			}
-
-			FastForwardResult result = fastForwardSafeEnchant(pc, scrollObjectId, objectId.intValue(),
-					session._targetLevel, remainingBudget);
-			if (result.getSteps() <= 0) {
-				if ("target-reached".equals(result.getStopReason())) {
-					continue;
-				}
-				stopReason = result.getStopReason();
-				break;
-			}
-
-			processed++;
-			attempts += result.getSteps();
-			if (result.isReachedTarget()) {
-				reached++;
-			} else {
-				stopReason = result.getStopReason();
-				break;
-			}
-		}
-
-		pc.sendPackets(new S_SystemMessage("Batch enchant completed: processed=" + processed
-				+ ", reached=" + reached + ", scrolls=" + attempts + ", stop=" + stopReason + "."));
-		_log.info("[BatchEnchant] safe done char=" + pc.getName() + ", processed=" + processed
-				+ ", reached=" + reached + ", attempts=" + attempts + ", stop=" + stopReason);
 	}
 
 	private static List<Integer> collectCandidateIds(L1PcInventory inventory, int templateObjectId,
@@ -550,8 +932,55 @@ public final class BatchEnchantService {
 				|| itemId == L1ItemId.C_SCROLL_OF_ENCHANT_ARMOR;
 	}
 
+	private static int getBlessedScrollItemId(int itemType2) {
+		return itemType2 == 1
+				? L1ItemId.B_SCROLL_OF_ENCHANT_WEAPON
+				: L1ItemId.B_SCROLL_OF_ENCHANT_ARMOR;
+	}
+
+	private static int getCursedScrollItemId(int itemType2) {
+		return itemType2 == 1
+				? L1ItemId.C_SCROLL_OF_ENCHANT_WEAPON
+				: L1ItemId.C_SCROLL_OF_ENCHANT_ARMOR;
+	}
+
+	private static int findScrollObjectId(L1PcInventory inventory, int scrollItemId) {
+		synchronized (inventory) {
+			L1ItemInstance scroll = inventory.findItemId(scrollItemId);
+			return scroll == null ? 0 : scroll.getId();
+		}
+	}
+
 	private static boolean isCancelRequested(L1PcInstance pc) {
 		return pc != null && _cancelRequested.containsKey(Integer.valueOf(pc.getId()));
+	}
+
+	private static boolean isSameActiveCharacter(L1PcInstance pc, ClientThread client) {
+		return pc != null && client != null && pc.getOnlineStatus() == 1
+				&& client.getActiveChar() == pc;
+	}
+
+	private static synchronized Semaphore getJobSlots() {
+		int configured = Math.max(1, Config.BATCH_ENCHANT_MAX_CONCURRENT_JOBS);
+		if (_jobSlots == null || _jobSlotCount != configured) {
+			_jobSlots = new Semaphore(configured, true);
+			_jobSlotCount = configured;
+		}
+		return _jobSlots;
+	}
+
+	private static boolean parseFlag(String value) {
+		if ("0".equals(value)) {
+			return false;
+		}
+		if ("1".equals(value)) {
+			return true;
+		}
+		throw new IllegalArgumentException("flag must be 0 or 1");
+	}
+
+	private static int flag(boolean value) {
+		return value ? 1 : 0;
 	}
 
 	private static boolean isBlockedInventoryOpcode(int opcode) {
@@ -617,6 +1046,7 @@ public final class BatchEnchantService {
 	}
 
 	private static void sendUsage(L1PcInstance pc) {
-		pc.sendPackets(new S_SystemMessage("Usage: eb <target> <count> | eb status | eb off"));
+		pc.sendPackets(new S_SystemMessage(
+				"Usage: eb <target> <count> [blessed 0|1] [cursed 0|1] | eb status | eb off"));
 	}
 }
