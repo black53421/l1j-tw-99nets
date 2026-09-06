@@ -32,6 +32,14 @@ public class S_MoveCharPacket extends ServerBasePacket {
 		int x = cha.getX() - MoveUtil.MoveX(heading);
 		int y = cha.getY() - MoveUtil.MoveY(heading);
 
+		buildPacket(cha, x, y, heading);
+	}
+
+	public S_MoveCharPacket(L1Character cha, int x, int y, int heading) {
+		buildPacket(cha, x, y, heading);
+	}
+
+	private void buildPacket(L1Character cha, int x, int y, int heading) {
 		writeC(Opcodes.S_OPCODE_MOVEOBJECT);
 		writeD(cha.getId());
 		writeH(x);

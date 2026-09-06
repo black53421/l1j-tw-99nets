@@ -33,7 +33,6 @@ import l1j.server.server.model.Instance.L1NpcInstance;
 import l1j.server.server.model.Instance.L1PcInstance;
 import l1j.server.server.model.trap.L1WorldTraps;
 import l1j.server.server.serverpackets.S_MoveCharPacket;
-import l1j.server.server.serverpackets.S_OwnCharPack;
 import l1j.server.server.serverpackets.S_SystemMessage;
 
 // Referenced classes of package l1j.server.server.clientpackets:
@@ -88,7 +87,7 @@ public class C_MoveChar extends ClientBasePacket {
 		Result collision = L1PlayerMovementCollision.check(pc, targetX, targetY);
 		if (collision.isBlocked()) {
 			traceMovePacket(pc, fromX, fromY, targetX, targetY, heading, collision);
-			correctClientPosition(pc);
+			correctClientPosition(pc, targetX, targetY, heading);
 			return;
 		}
 
@@ -117,7 +116,7 @@ public class C_MoveChar extends ClientBasePacket {
 		collision = L1MovementCoordinator.tryMovePlayer(pc, locx, locy, heading);
 		traceMovePacket(pc, fromX, fromY, targetX, targetY, heading, collision);
 		if (collision.isBlocked()) {
-			correctClientPosition(pc);
+			correctClientPosition(pc, targetX, targetY, heading);
 			return;
 		}
 
@@ -165,17 +164,20 @@ public class C_MoveChar extends ClientBasePacket {
 
 		String tileText = inMap ? String.format("0x%02X(%d)", tile, tile) : "N/A";
 		String blocker = describeBlocker(collision.getBlocker());
+		String correction = collision.isBlocked() ? "MOVEOBJECT" : "NONE";
 		String message = String.format(
-				"[MOVETRACE] received=yes map=%d from=%d,%d to=%d,%d heading=%d zone=%s->%s tile=%s pathPassable=%s decision=%s reason=%s blocker=%s obj=%s",
+				"[MOVETRACE] received=yes map=%d from=%d,%d to=%d,%d heading=%d zone=%s->%s tile=%s pathPassable=%s decision=%s reason=%s correction=%s blocker=%s obj=%s",
 				pc.getMapId(), fromX, fromY, targetX, targetY, heading,
 				zoneName(pc.getZoneType()), targetZone, tileText,
 				Boolean.toString(pathPassable), collision.isBlocked() ? "BLOCK" : "ALLOW",
-				collision.getReason(), blocker, objects);
+				collision.getReason(), correction, blocker, objects);
 		pc.sendPackets(new S_SystemMessage(message));
 	}
 
-	private static void correctClientPosition(L1PcInstance pc) {
-		pc.sendPackets(new S_OwnCharPack(pc));
+	private static void correctClientPosition(L1PcInstance pc, int targetX,
+			int targetY, int attemptedHeading) {
+		int reverseHeading = (attemptedHeading + 4) & 0x07;
+		pc.sendPackets(new S_MoveCharPacket(pc, targetX, targetY, reverseHeading));
 	}
 
 	private static String describeBlocker(L1Character blocker) {
