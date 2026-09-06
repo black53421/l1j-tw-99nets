@@ -1918,6 +1918,10 @@ public class L1PcInstance extends L1Character {
 	private boolean _monsterHpBarEnabled;
 	private boolean _petDamageMessageEnabled;
 	private boolean _petHitMessageEnabled;
+	private boolean _zoneTraceEnabled;
+	private boolean _moveTraceEnabled;
+	private int _zoneTraceLastZoneType;
+	private short _zoneTraceLastMapId;
 	private short _accessLevel;
 	private int _currentWeapon;
 	private final L1PcInventory _inventory;
@@ -1984,6 +1988,38 @@ public class L1PcInstance extends L1Character {
 
 	public void setPetHitMessageEnabled(boolean enabled) {
 		_petHitMessageEnabled = enabled;
+	}
+
+	public boolean isZoneTraceEnabled() {
+		return _zoneTraceEnabled;
+	}
+
+	public void setZoneTraceEnabled(boolean enabled) {
+		_zoneTraceEnabled = enabled;
+		if (enabled) {
+			updateZoneTraceState();
+		}
+	}
+
+	public int getZoneTraceLastZoneType() {
+		return _zoneTraceLastZoneType;
+	}
+
+	public short getZoneTraceLastMapId() {
+		return _zoneTraceLastMapId;
+	}
+
+	public void updateZoneTraceState() {
+		_zoneTraceLastZoneType = getZoneType();
+		_zoneTraceLastMapId = getMapId();
+	}
+
+	public boolean isMoveTraceEnabled() {
+		return _moveTraceEnabled;
+	}
+
+	public void setMoveTraceEnabled(boolean enabled) {
+		_moveTraceEnabled = enabled;
 	}
 	
 	public String getAccountName() {
