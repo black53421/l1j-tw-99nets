@@ -32,6 +32,7 @@ import l1j.server.server.model.L1Location;
 import l1j.server.server.model.L1Magic;
 import l1j.server.server.model.L1Object;
 import l1j.server.server.model.L1PcInventory;
+import l1j.server.server.model.L1PetDamageDebug;
 import l1j.server.server.model.L1PolyMorph;
 import l1j.server.server.model.L1Teleport;
 import l1j.server.server.model.L1War;
@@ -256,15 +257,16 @@ public class L1SkillUse {
 			return damage;
 		}
 
-		int rate = Config.PET_MONSTER_MAGIC_SECONDARY_AOE_DAMAGE_RATE;
-		if (target.getId() == _targetID) {
-			rate = Config.PET_MONSTER_MAGIC_PRIMARY_DAMAGE_RATE;
-		}
+		boolean primaryTarget = target.getId() == _targetID;
+		int rate = primaryTarget ? Config.PET_MONSTER_MAGIC_PRIMARY_DAMAGE_RATE
+				: Config.PET_MONSTER_MAGIC_SECONDARY_AOE_DAMAGE_RATE;
+		int adjustedDamage = rate == 100 ? damage
+				: (int) (((long) damage * rate) / 100L);
 
-		if (rate == 100) {
-			return damage;
-		}
-		return (int) (((long) damage * rate) / 100L);
+		L1PetDamageDebug.reportMonsterMagicAdjustment((L1PetInstance) target,
+				(L1MonsterInstance) _user, damage, adjustedDamage, rate,
+				primaryTarget);
+		return adjustedDamage;
 	}
 
 	private boolean isCheckedUseSkill() {

@@ -1646,11 +1646,30 @@ public class L1Attack {
 	/* ■■■■■■■■■■■■■■■ 計算結果反映 ■■■■■■■■■■■■■■■ */
 
 	public void commit() {
-		if (_isHit) {
-			if ((_calcType == PC_PC) || (_calcType == NPC_PC)) {
-				commitPc();
-			} else if ((_calcType == PC_NPC) || (_calcType == NPC_NPC)) {
-				commitNpc();
+		boolean petDamageContext = (_npc instanceof L1PetInstance)
+				|| (_target instanceof L1PetInstance);
+		int targetHpBefore = _target != null ? _target.getCurrentHp() : 0;
+
+		if (petDamageContext) {
+			L1PetDamageDebug.beginDamageSource(L1PetDamageDebug.SOURCE_PHYSICAL);
+		}
+		try {
+			if (_isHit) {
+				if ((_calcType == PC_PC) || (_calcType == NPC_PC)) {
+					commitPc();
+				} else if ((_calcType == PC_NPC) || (_calcType == NPC_NPC)) {
+					commitNpc();
+				}
+			}
+
+			if (_npc instanceof L1PetInstance) {
+				L1PetDamageDebug.reportOutgoing((L1PetInstance) _npc, _target,
+						_damage, targetHpBefore, _isHit);
+			}
+		}
+		finally {
+			if (petDamageContext) {
+				L1PetDamageDebug.endDamageSource();
 			}
 		}
 

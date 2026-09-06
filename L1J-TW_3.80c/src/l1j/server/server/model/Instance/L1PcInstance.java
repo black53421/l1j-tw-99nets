@@ -1916,6 +1916,8 @@ public class L1PcInstance extends L1Character {
 	private boolean _gmInvis;
 	private boolean _damageMessageEnabled;
 	private boolean _monsterHpBarEnabled;
+	private boolean _petDamageMessageEnabled;
+	private boolean _petHitMessageEnabled;
 	private short _accessLevel;
 	private int _currentWeapon;
 	private final L1PcInventory _inventory;
@@ -1966,6 +1968,22 @@ public class L1PcInstance extends L1Character {
 
 	public void setMonsterHpBarEnabled(boolean enabled) {
 		_monsterHpBarEnabled = enabled;
+	}
+
+	public boolean isPetDamageMessageEnabled() {
+		return _petDamageMessageEnabled;
+	}
+
+	public void setPetDamageMessageEnabled(boolean enabled) {
+		_petDamageMessageEnabled = enabled;
+	}
+
+	public boolean isPetHitMessageEnabled() {
+		return _petHitMessageEnabled;
+	}
+
+	public void setPetHitMessageEnabled(boolean enabled) {
+		_petHitMessageEnabled = enabled;
 	}
 	
 	public String getAccountName() {

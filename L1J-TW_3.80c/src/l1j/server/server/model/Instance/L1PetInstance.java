@@ -28,6 +28,7 @@ import l1j.server.server.datatables.PetTable;
 import l1j.server.server.datatables.PetTypeTable;
 import l1j.server.server.model.L1Attack;
 import l1j.server.server.model.L1Character;
+import l1j.server.server.model.L1PetDamageDebug;
 import l1j.server.server.model.L1Inventory;
 import l1j.server.server.model.L1Object;
 import l1j.server.server.model.L1PetFood;
@@ -45,11 +46,16 @@ import l1j.server.server.templates.L1Npc;
 import l1j.server.server.templates.L1Pet;
 import l1j.server.server.templates.L1PetItem;
 import l1j.server.server.templates.L1PetType;
+import l1j.server.server.utils.IntRange;
 import l1j.server.server.utils.Random;
 
 public class L1PetInstance extends L1NpcInstance {
 
 	private static final long serialVersionUID = 1L;
+
+	private static final int DEBUG_LEVEL_MIN = 1;
+
+	private static final int DEBUG_LEVEL_MAX = 50;
 
 	private int _dir;
 
@@ -226,6 +232,10 @@ public class L1PetInstance extends L1NpcInstance {
 	// 攻撃でＨＰを減らすときはここを使用
 	@Override
 	public void receiveDamage(L1Character attacker, int damage) {
+		int hpBefore = getCurrentHp();
+		int inputDamage = damage;
+		int appliedDamage = damage;
+
 		if (getCurrentHp() > 0) {
 			if (damage > 0) { // 回復の場合は攻撃しない。
 				setHate(attacker, 0); // ペットはヘイト無し
@@ -251,6 +261,7 @@ public class L1PetInstance extends L1NpcInstance {
 				}
 			}
 
+			appliedDamage = damage;
 			int newHp = getCurrentHp() - damage;
 			if (newHp <= 0) {
 				death(attacker);
@@ -260,10 +271,16 @@ public class L1PetInstance extends L1NpcInstance {
 		} else if (!isDead()) { // 念のため
 			death(attacker);
 		}
+
+		if (inputDamage > 0) {
+			L1PetDamageDebug.reportIncoming(this, attacker, inputDamage,
+					appliedDamage, hpBefore, getCurrentHp());
+		}
 	}
 
 	public synchronized void death(L1Character lastAttacker) {
 		if (!isDead()) {
+			clearDebugLevelOverride();
 			setDead(true);
 			// 停止飽食度計時器
 			stopFoodTimer(this);
@@ -277,6 +294,8 @@ public class L1PetInstance extends L1NpcInstance {
 
 	/** 寵物進化 */
 	public void evolvePet(int new_itemobjid) {
+
+		clearDebugLevelOverride();
 
 		L1Pet l1pet = PetTable.getInstance().getTemplate(_itemObjId);
 		if (l1pet == null) {
@@ -360,6 +379,8 @@ public class L1PetInstance extends L1NpcInstance {
 
 	/** 解放寵物 */
 	public void liberate() {
+		clearDebugLevelOverride();
+
 		L1MonsterInstance monster = new L1MonsterInstance(getNpcTemplate());
 		monster.setId(IdFactory.getInstance().nextId());
 
@@ -540,8 +561,8 @@ public class L1PetInstance extends L1NpcInstance {
 			// XXX ペットに話しかけるたびにDBに書き込む必要はない
 			if (l1pet != null) {
 				l1pet.set_exp(getExp());
-				l1pet.set_level(getLevel());
-				l1pet.set_hp(getMaxHp());
+				l1pet.set_level(getRealLevel());
+				l1pet.set_hp(getRealMaxHp());
 				l1pet.set_mp(getMaxMp());
 				l1pet.set_food(get_food());
 				PetTable.getInstance().storePet(l1pet); // DBに書き込み
@@ -704,6 +725,71 @@ public class L1PetInstance extends L1NpcInstance {
 		return _itemObjId;
 	}
 
+	@Override
+	public synchronized int getLevel() {
+		if (_debugLevelOverride != 0) {
+			return _debugLevelOverride;
+		}
+		return super.getLevel();
+	}
+
+	public synchronized int getRealLevel() {
+		return super.getLevel();
+	}
+
+	@Override
+	public synchronized short getMaxHp() {
+		if (_debugLevelOverride == 0) {
+			return super.getMaxHp();
+		}
+
+		int debugMaxHp = super.getMaxHp() + _debugMaxHpBonus;
+		return (short) IntRange.ensure(debugMaxHp, 1, 32767);
+	}
+
+	public synchronized int getRealMaxHp() {
+		return super.getMaxHp();
+	}
+
+	public synchronized boolean hasDebugLevelOverride() {
+		return _debugLevelOverride != 0;
+	}
+
+	public synchronized void setDebugLevelOverride(int level) {
+		if ((level < DEBUG_LEVEL_MIN) || (level > DEBUG_LEVEL_MAX)) {
+			throw new IllegalArgumentException("Pet debug level must be between "
+					+ DEBUG_LEVEL_MIN + " and " + DEBUG_LEVEL_MAX + ".");
+		}
+
+		if (_debugLevelOverride == 0) {
+			_debugOriginalCurrentHp = getCurrentHp();
+		}
+
+		IntRange hpUpRange = getPetType().getHpUpRange();
+		int levelGap = level - getRealLevel();
+		long hpGrowthSum = (long) levelGap
+				* (hpUpRange.getLow() + hpUpRange.getHigh());
+		// Use deterministic midpoint growth instead of modifying real pet stats.
+		_debugMaxHpBonus = (int) (hpGrowthSum / 2L);
+		_debugLevelOverride = level;
+		setCurrentHpDirect(getMaxHp());
+	}
+
+	public synchronized void clearDebugLevelOverride() {
+		if (_debugLevelOverride == 0) {
+			return;
+		}
+
+		int originalCurrentHp = _debugOriginalCurrentHp;
+		_debugLevelOverride = 0;
+		_debugMaxHpBonus = 0;
+		_debugOriginalCurrentHp = -1;
+
+		if (originalCurrentHp >= 0) {
+			setCurrentHpDirect(Math.min(originalCurrentHp, super.getMaxHp()));
+		}
+	}
+
 	public void setExpPercent(int expPercent) {
 		_expPercent = expPercent;
 	}
@@ -757,6 +843,12 @@ public class L1PetInstance extends L1NpcInstance {
 	private L1PcInstance _petMaster;
 
 	private int _itemObjId;
+
+	private int _debugLevelOverride;
+
+	private int _debugMaxHpBonus;
+
+	private int _debugOriginalCurrentHp = -1;
 
 	private L1PetType _type;
 

@@ -397,6 +397,10 @@ public class CalcExp {
 	}
 
 	private static void AddExpPet(L1PetInstance pet, int exp) {
+		if (pet.hasDebugLevelOverride()) {
+			return;
+		}
+
 		L1PcInstance pc = (L1PcInstance) pet.getMaster();
 
 		int petItemObjId = pet.getItemObjId();

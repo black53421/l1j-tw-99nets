@@ -977,11 +977,30 @@ public class L1Magic {
 	/* ■■■■■■■■■■■■■■■ 計算結果反映 ■■■■■■■■■■■■■■■ */
 
 	public void commit(int damage, int drainMana) {
-		if ((_calcType == PC_PC) || (_calcType == NPC_PC)) {
-			commitPc(damage, drainMana);
+		boolean petDamageContext = (_npc instanceof L1PetInstance)
+				|| (_target instanceof L1PetInstance);
+		int targetHpBefore = _target != null ? _target.getCurrentHp() : 0;
+
+		if (petDamageContext) {
+			L1PetDamageDebug.beginDamageSource(L1PetDamageDebug.SOURCE_MAGIC);
 		}
-		else if ((_calcType == PC_NPC) || (_calcType == NPC_NPC)) {
-			commitNpc(damage, drainMana);
+		try {
+			if ((_calcType == PC_PC) || (_calcType == NPC_PC)) {
+				commitPc(damage, drainMana);
+			}
+			else if ((_calcType == PC_NPC) || (_calcType == NPC_NPC)) {
+				commitNpc(damage, drainMana);
+			}
+
+			if ((_npc instanceof L1PetInstance) && (damage > 0)) {
+				L1PetDamageDebug.reportOutgoing((L1PetInstance) _npc, _target,
+						damage, targetHpBefore, true);
+			}
+		}
+		finally {
+			if (petDamageContext) {
+				L1PetDamageDebug.endDamageSource();
+			}
 		}
 
 		// ダメージ値及び命中率確認用メッセージ
