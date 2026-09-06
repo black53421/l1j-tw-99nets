@@ -24,12 +24,16 @@ import l1j.server.server.model.Dungeon;
 import l1j.server.server.model.DungeonRandom;
 import l1j.server.server.model.L1Character;
 import l1j.server.server.model.L1Object;
+import l1j.server.server.model.L1MovementCoordinator;
+import l1j.server.server.model.L1PlayerMovementCollision;
+import l1j.server.server.model.L1PlayerMovementCollision.Result;
 import l1j.server.server.model.L1Trade;
 import l1j.server.server.model.L1World;
 import l1j.server.server.model.Instance.L1NpcInstance;
 import l1j.server.server.model.Instance.L1PcInstance;
 import l1j.server.server.model.trap.L1WorldTraps;
 import l1j.server.server.serverpackets.S_MoveCharPacket;
+import l1j.server.server.serverpackets.S_OwnCharPack;
 import l1j.server.server.serverpackets.S_SystemMessage;
 
 // Referenced classes of package l1j.server.server.clientpackets:
@@ -73,11 +77,20 @@ public class C_MoveChar extends ClientBasePacket {
 			locy = pc.getY();
 		}
 
+		if ((heading < 0) || (heading >= HEADING_TABLE_X.length)) {
+			return;
+		}
+
 		int fromX = pc.getX();
 		int fromY = pc.getY();
 		int targetX = locx + HEADING_TABLE_X[heading];
 		int targetY = locy + HEADING_TABLE_Y[heading];
-		traceMovePacket(pc, fromX, fromY, targetX, targetY, heading);
+		Result collision = L1PlayerMovementCollision.check(pc, targetX, targetY);
+		if (collision.isBlocked()) {
+			traceMovePacket(pc, fromX, fromY, targetX, targetY, heading, collision);
+			correctClientPosition(pc);
+			return;
+		}
 
 		// 檢查移動的時間間隔
 		if (Config.CHECK_MOVE_INTERVAL) {
@@ -88,22 +101,6 @@ public class C_MoveChar extends ClientBasePacket {
 			}
 		}
 		
-		// 移動中, 取消交易
-	    if (pc.getTradeID() != 0) {
-	    	L1Trade trade = new L1Trade();
-	        trade.TradeCancel(pc);
-	    }
-
-		if (pc.hasSkillEffect(MEDITATION)) { // 取消冥想效果
-			pc.removeSkillEffect(MEDITATION);
-		}
-		pc.setCallClanId(0); // コールクランを唱えた後に移動すると召喚無効
-
-		if (!pc.hasSkillEffect(ABSOLUTE_BARRIER)) { // 絕對屏障
-			pc.setRegenState(REGENSTATE_MOVE);
-		}
-		pc.getMap().setPassable(pc.getLocation(), true);
-
 		locx = targetX;
 		locy = targetY;
 
@@ -114,8 +111,28 @@ public class C_MoveChar extends ClientBasePacket {
 			return;
 		}
 
-		pc.getLocation().set(locx, locy);
-		pc.setHeading(heading);
+		// Revalidate and publish the movement atomically with NPC walking.
+		// The preliminary check above keeps blocked moves out of the normal
+		// side-effect path; this final check closes the simultaneous-move race.
+		collision = L1MovementCoordinator.tryMovePlayer(pc, locx, locy, heading);
+		traceMovePacket(pc, fromX, fromY, targetX, targetY, heading, collision);
+		if (collision.isBlocked()) {
+			correctClientPosition(pc);
+			return;
+		}
+
+		// Apply movement side effects only after the atomic move succeeds.
+		if (pc.getTradeID() != 0) {
+			L1Trade trade = new L1Trade();
+			trade.TradeCancel(pc);
+		}
+		if (pc.hasSkillEffect(MEDITATION)) {
+			pc.removeSkillEffect(MEDITATION);
+		}
+		pc.setCallClanId(0);
+		if (!pc.hasSkillEffect(ABSOLUTE_BARRIER)) {
+			pc.setRegenState(REGENSTATE_MOVE);
+		}
 		if (pc.isGmInvis() || pc.isGhost()) {}
 		else if (pc.isInvisble()) {
 			pc.broadcastPacketForFindInvis(new S_MoveCharPacket(pc), true);
@@ -131,12 +148,11 @@ public class C_MoveChar extends ClientBasePacket {
 		l1j.server.server.model.game.L1PolyRace.getInstance().checkLapFinish(pc);
 		L1WorldTraps.getInstance().onPlayerMoved(pc);
 
-		pc.getMap().setPassable(pc.getLocation(), false);
 		// user.UpdateObject(); // 可視範囲内の全オブジェクト更新
 	}
 
 	private static void traceMovePacket(L1PcInstance pc, int fromX, int fromY,
-			int targetX, int targetY, int heading) {
+			int targetX, int targetY, int heading, Result collision) {
 		if (!pc.isMoveTraceEnabled()) {
 			return;
 		}
@@ -148,12 +164,34 @@ public class C_MoveChar extends ClientBasePacket {
 		String objects = describeCharactersAt(pc, targetX, targetY);
 
 		String tileText = inMap ? String.format("0x%02X(%d)", tile, tile) : "N/A";
+		String blocker = describeBlocker(collision.getBlocker());
 		String message = String.format(
-				"[MOVETRACE] received=yes map=%d from=%d,%d to=%d,%d heading=%d zone=%s->%s tile=%s pathPassable=%s obj=%s",
+				"[MOVETRACE] received=yes map=%d from=%d,%d to=%d,%d heading=%d zone=%s->%s tile=%s pathPassable=%s decision=%s reason=%s blocker=%s obj=%s",
 				pc.getMapId(), fromX, fromY, targetX, targetY, heading,
 				zoneName(pc.getZoneType()), targetZone, tileText,
-				Boolean.toString(pathPassable), objects);
+				Boolean.toString(pathPassable), collision.isBlocked() ? "BLOCK" : "ALLOW",
+				collision.getReason(), blocker, objects);
 		pc.sendPackets(new S_SystemMessage(message));
+	}
+
+	private static void correctClientPosition(L1PcInstance pc) {
+		pc.sendPackets(new S_OwnCharPack(pc));
+	}
+
+	private static String describeBlocker(L1Character blocker) {
+		if (blocker == null) {
+			return "none";
+		}
+
+		StringBuilder result = new StringBuilder();
+		result.append(blocker.getClass().getSimpleName())
+				.append(':').append(blocker.getName())
+				.append('#').append(blocker.getId());
+		if (blocker instanceof L1NpcInstance) {
+			result.append("/npc=")
+					.append(((L1NpcInstance) blocker).getNpcTemplate().get_npcId());
+		}
+		return result.toString();
 	}
 
 	private static String describeCharactersAt(L1PcInstance pc, int x, int y) {

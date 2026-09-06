@@ -145,3 +145,4 @@ INSERT INTO `commands` VALUES ('系統', '200', 'L1System');
 INSERT INTO `commands` VALUES ('zone', '200', 'L1Zone');
 INSERT INTO `commands` VALUES ('zonetrace', '200', 'L1ZoneTrace');
 INSERT INTO `commands` VALUES ('movetrace', '200', 'L1MoveTrace');
+INSERT INTO `commands` VALUES ('gmaggro', '200', 'L1GmAggro');

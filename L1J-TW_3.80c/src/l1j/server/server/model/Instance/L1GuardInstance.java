@@ -41,7 +41,7 @@ public class L1GuardInstance extends L1NpcInstance {
 		// ターゲット捜索
 		L1PcInstance targetPlayer = null;
 		for (L1PcInstance pc : L1World.getInstance().getVisiblePlayer(this)) {
-			if ((pc.getCurrentHp() <= 0) || pc.isDead() || pc.isGm() || pc.isGhost()) {
+			if ((pc.getCurrentHp() <= 0) || pc.isDead() || pc.isIgnoredByNpcAggro() || pc.isGhost()) {
 				continue;
 			}
 			if (!pc.isInvisble() || getNpcTemplate().is_agrocoi()) // インビジチェック

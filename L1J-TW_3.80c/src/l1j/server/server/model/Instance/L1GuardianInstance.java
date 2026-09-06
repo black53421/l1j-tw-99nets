@@ -73,7 +73,7 @@ public class L1GuardianInstance extends L1NpcInstance {
 		L1PcInstance targetPlayer = null;
 
 		for (L1PcInstance pc : L1World.getInstance().getVisiblePlayer(this)) {
-			if ((pc.getCurrentHp() <= 0) || pc.isDead() || pc.isGm()
+			if ((pc.getCurrentHp() <= 0) || pc.isDead() || pc.isIgnoredByNpcAggro()
 					|| pc.isGhost()) {
 				continue;
 			}

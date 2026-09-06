@@ -265,6 +265,43 @@ public class L1V2Map extends L1Map {
 	}
 
 	@Override
+	public boolean isTerrainPassable(int x, int y, int heading) {
+		int targetX = x;
+		int targetY = y;
+
+		if (heading == 0) {
+			targetY--;
+		} else if (heading == 1) {
+			targetX++;
+			targetY--;
+		} else if (heading == 2) {
+			targetX++;
+		} else if (heading == 3) {
+			targetX++;
+			targetY++;
+		} else if (heading == 4) {
+			targetY++;
+		} else if (heading == 5) {
+			targetX--;
+			targetY++;
+		} else if (heading == 6) {
+			targetX--;
+		} else if (heading == 7) {
+			targetX--;
+			targetY--;
+		} else {
+			return false;
+		}
+
+		if (!isInMap(targetX, targetY)) {
+			return false;
+		}
+
+		int tile = accessOriginalTile(targetX, targetY);
+		return tile != 1 && tile != 9 && tile != 65 && tile != 69 && tile != 73;
+	}
+
+	@Override
 	public boolean isSafetyZone(Point pt) {
 		return isSafetyZone(pt.getX(), pt.getY());
 	}

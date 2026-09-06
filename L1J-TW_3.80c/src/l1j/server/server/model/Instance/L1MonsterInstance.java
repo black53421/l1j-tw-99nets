@@ -163,7 +163,7 @@ public class L1MonsterInstance extends L1NpcInstance {
 
 		for (L1PcInstance pc : L1World.getInstance().getVisiblePlayer(this)) {
 
-			if ( pc == lastTarget || (pc.getCurrentHp() <= 0) || pc.isDead() || pc.isGm()
+			if ( pc == lastTarget || (pc.getCurrentHp() <= 0) || pc.isDead() || pc.isIgnoredByNpcAggro()
 					|| pc.isMonitor() || pc.isGhost()) {
 				continue;
 			}

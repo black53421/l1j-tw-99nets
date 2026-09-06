@@ -132,6 +132,20 @@ public abstract class L1Map {
 	public abstract boolean isPassable(int x, int y, int heading);
 
 	/**
+	 * Returns whether the static map terrain permits movement from the specified
+	 * coordinate in the specified heading. Dynamic character occupancy is ignored.
+	 *
+	 * @param x
+	 *            source X coordinate
+	 * @param y
+	 *            source Y coordinate
+	 * @param heading
+	 *            movement heading
+	 * @return true if the static terrain permits the move
+	 */
+	public abstract boolean isTerrainPassable(int x, int y, int heading);
+
+	/**
 	 * 指定された座標の通行可能、不能を設定する。
 	 * 
 	 * @param pt
@@ -444,6 +458,11 @@ class L1NullMap extends L1Map {
 
 	@Override
 	public boolean isPassable(Point pt, int heading) {
+		return false;
+	}
+
+	@Override
+	public boolean isTerrainPassable(int x, int y, int heading) {
 		return false;
 	}
 

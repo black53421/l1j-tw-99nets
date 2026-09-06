@@ -1920,6 +1920,7 @@ public class L1PcInstance extends L1Character {
 	private boolean _petHitMessageEnabled;
 	private boolean _zoneTraceEnabled;
 	private boolean _moveTraceEnabled;
+	private boolean _gmAggroTestEnabled;
 	private int _zoneTraceLastZoneType;
 	private short _zoneTraceLastMapId;
 	private short _accessLevel;
@@ -2020,6 +2021,18 @@ public class L1PcInstance extends L1Character {
 
 	public void setMoveTraceEnabled(boolean enabled) {
 		_moveTraceEnabled = enabled;
+	}
+
+	public boolean isGmAggroTestEnabled() {
+		return _gmAggroTestEnabled;
+	}
+
+	public void setGmAggroTestEnabled(boolean enabled) {
+		_gmAggroTestEnabled = enabled;
+	}
+
+	public boolean isIgnoredByNpcAggro() {
+		return isGm() && !_gmAggroTestEnabled;
 	}
 	
 	public String getAccountName() {

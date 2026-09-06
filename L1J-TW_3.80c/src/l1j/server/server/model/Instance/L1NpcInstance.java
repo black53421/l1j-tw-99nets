@@ -53,6 +53,7 @@ import l1j.server.server.model.L1MobSkillUse;
 import l1j.server.server.model.L1NpcChatTimer;
 import l1j.server.server.model.L1NpcRegenerationTimer;
 import l1j.server.server.model.L1Object;
+import l1j.server.server.model.L1MovementCoordinator;
 import l1j.server.server.model.L1Spawn;
 import l1j.server.server.model.L1World;
 import l1j.server.server.model.map.L1Map;
@@ -418,6 +419,24 @@ public class L1NpcInstance extends L1Character {
 		}
 	}
 
+	private boolean isNpcAttackPosition(int targetX, int targetY, int range) {
+		if (range != 1) {
+			return isAttackPosition(targetX, targetY, range);
+		}
+
+		int deltaX = Math.abs(getX() - targetX);
+		int deltaY = Math.abs(getY() - targetY);
+		if (deltaX > 1 || deltaY > 1) {
+			return false;
+		}
+		if (deltaX == 0 && deltaY == 0) {
+			return true;
+		}
+
+		int heading = targetDirection(targetX, targetY);
+		return getMap().isTerrainPassable(getX(), getY(), heading);
+	}
+
 	// ターゲットがいる場合の処理
 	public void onTarget() {
 		setActived(true);
@@ -441,7 +460,7 @@ public class L1NpcInstance extends L1Character {
 				}
 			}
 		} else { // 逃げないキャラ
-			if (isAttackPosition(target.getX(), target.getY(), getAtkRanged())) { // 攻撃可能位置
+			if (isNpcAttackPosition(target.getX(), target.getY(), getAtkRanged())) { // Attackable position
 				if (mobSkill.isSkillTrigger(target)) { // トリガの条件に合うスキルがある
 					if (mobSkill.skillUse(target, true)) { // スキル使用(mobskill.sqlのTriRndに従う)
 						setSleepTime(calcSleepTime(mobSkill.getSleepTime(),
@@ -489,7 +508,7 @@ public class L1NpcInstance extends L1Character {
 									&& !_blockingAttackTarget.isDead()
 									&& (_blockingAttackTarget.getCurrentHp() > 0)
 									&& (_blockingAttackTarget.getMapId() == getMapId())
-									&& isAttackPosition(_blockingAttackTarget.getX(),
+									&& isNpcAttackPosition(_blockingAttackTarget.getX(),
 											_blockingAttackTarget.getY(), getAtkRanged())) {
 								setHeading(targetDirection(_blockingAttackTarget.getX(),
 										_blockingAttackTarget.getY()));
@@ -1594,8 +1613,8 @@ public class L1NpcInstance extends L1Character {
 			setStatus(L1NpcDefaultAction.getInstance().getStatus(getTempCharGfx()));
 			broadcastPacket(new S_DoActionGFX(getId(), ActionCodes.ACTION_Appear));
 			broadcastPacket(new S_CharVisualUpdate(this, getStatus()));
-			if (!pc.hasSkillEffect(60) && !pc.hasSkillEffect(97) // インビジビリティ、ブラインドハイディング中以外、GM以外
-					&& !pc.isGm()) {
+			if (!pc.hasSkillEffect(60) && !pc.hasSkillEffect(97) // Except invisible states and PCs ignored by NPC aggro.
+					&& !pc.isIgnoredByNpcAggro()) {
 				_hateList.add(pc, 0);
 				_target = pc;
 			}
@@ -1605,8 +1624,8 @@ public class L1NpcInstance extends L1Character {
 			setHiddenStatus(HIDDEN_STATUS_NONE);
 			setStatus(L1NpcDefaultAction.getInstance().getStatus(getTempCharGfx()));
 			broadcastPacket(new S_DoActionGFX(getId(), ActionCodes.ACTION_Movedown));
-			if (!pc.hasSkillEffect(60) && !pc.hasSkillEffect(97) // インビジビリティ、ブラインドハイディング中以外、GM以外
-					&& !pc.isGm()) {
+			if (!pc.hasSkillEffect(60) && !pc.hasSkillEffect(97) // Except invisible states and PCs ignored by NPC aggro.
+					&& !pc.isIgnoredByNpcAggro()) {
 				_hateList.add(pc, 0);
 				_target = pc;
 			}
@@ -1617,8 +1636,8 @@ public class L1NpcInstance extends L1Character {
 			setStatus(L1NpcDefaultAction.getInstance().getStatus(getTempCharGfx()));
 			broadcastPacket(new S_DoActionGFX(getId(), ActionCodes.ACTION_AxeWalk));
 			broadcastPacket(new S_CharVisualUpdate(this, getStatus()));
-			if (!pc.hasSkillEffect(60) && !pc.hasSkillEffect(97) // インビジビリティ、ブラインドハイディング中以外、GM以外
-					&& !pc.isGm()) {
+			if (!pc.hasSkillEffect(60) && !pc.hasSkillEffect(97) // Except invisible states and PCs ignored by NPC aggro.
+					&& !pc.isIgnoredByNpcAggro()) {
 				_hateList.add(pc, 0);
 				_target = pc;
 			}
@@ -1631,93 +1650,33 @@ public class L1NpcInstance extends L1Character {
 
 	// 指定された方向に移動させる
 	public void setDirectionMove(int dir) {
-		if (dir >= 0) {
-			int nx = 0;
-			int ny = 0;
+		if (dir < 0) {
+			return;
+		}
 
-			switch (dir) {
-			case 1:
-				nx = 1;
-				ny = -1;
-				setHeading(1);
-				break;
+		if (!L1MovementCoordinator.tryMoveNpc(this, dir)) {
+			return;
+		}
 
-			case 2:
-				nx = 1;
-				ny = 0;
-				setHeading(2);
-				break;
+		broadcastPacket(new S_MoveCharPacket(this));
 
-			case 3:
-				nx = 1;
-				ny = 1;
-				setHeading(3);
-				break;
-
-			case 4:
-				nx = 0;
-				ny = 1;
-				setHeading(4);
-				break;
-
-			case 5:
-				nx = -1;
-				ny = 1;
-				setHeading(5);
-				break;
-
-			case 6:
-				nx = -1;
-				ny = 0;
-				setHeading(6);
-				break;
-
-			case 7:
-				nx = -1;
-				ny = -1;
-				setHeading(7);
-				break;
-
-			case 0:
-				nx = 0;
-				ny = -1;
-				setHeading(0);
-				break;
-
-			default:
-				break;
-
-			}
-
-			getMap().setPassable(getLocation(), true);
-
-			int nnx = getX() + nx;
-			int nny = getY() + ny;
-			setX(nnx);
-			setY(nny);
-
-			getMap().setPassable(getLocation(), false);
-
-			broadcastPacket(new S_MoveCharPacket(this));
-
-			// movement_distanceマス以上離れたらホームポイントへテレポート
-			if (getMovementDistance() > 0) {
-				if ((this instanceof L1GuardInstance)
-						|| (this instanceof L1MerchantInstance)
-						|| (this instanceof L1MonsterInstance)) {
-					if (getLocation().getLineDistance(
-							new Point(getHomeX(), getHomeY())) > getMovementDistance()) {
-						teleport(getHomeX(), getHomeY(), getHeading());
-					}
-				}
-			}
-			// 判斷士兵的怨靈、怨靈、哈蒙將軍的怨靈離開墓園範圍時傳送回墓園！
-			if ((getNpcTemplate().get_npcId() >= 45912)
-					&& (getNpcTemplate().get_npcId() <= 45916)) {
-				if (!((getX() >= 32591) && (getX() <= 32644)
-						&& (getY() >= 32643) && (getY() <= 32688) && (getMapId() == 4))) {
+		// movement_distanceマス以上離れたらホームポイントへテレポート
+		if (getMovementDistance() > 0) {
+			if ((this instanceof L1GuardInstance)
+					|| (this instanceof L1MerchantInstance)
+					|| (this instanceof L1MonsterInstance)) {
+				if (getLocation().getLineDistance(
+						new Point(getHomeX(), getHomeY())) > getMovementDistance()) {
 					teleport(getHomeX(), getHomeY(), getHeading());
 				}
+			}
+		}
+		// 判斷士兵的怨靈、怨靈、哈蒙將軍的怨靈離開墓園範圍時傳送回墓園！
+		if ((getNpcTemplate().get_npcId() >= 45912)
+				&& (getNpcTemplate().get_npcId() <= 45916)) {
+			if (!((getX() >= 32591) && (getX() <= 32644)
+					&& (getY() >= 32643) && (getY() <= 32688) && (getMapId() == 4))) {
+				teleport(getHomeX(), getHomeY(), getHeading());
 			}
 		}
 	}
@@ -1747,10 +1706,37 @@ public class L1NpcInstance extends L1Character {
 				dir = targetDirection(x, y);
 				dir = resolveBlockedDirection(dir);
 			} else {
-				resetBlockerRetryState();
+				// Preserve the route selected by _serchCource(). The normal
+				// blocker resolver may steer left or right and can therefore
+				// destroy a valid path around walls. Only revalidate the exact
+				// searched direction before committing the move.
+				dir = validateSearchedDirection(dir);
 			}
 		}
 		return dir;
+	}
+
+	private int validateSearchedDirection(int dir) {
+		if (dir < 0) {
+			return -1;
+		}
+
+		if (getMap().isPassable(getX(), getY(), dir)) {
+			resetBlockerRetryState();
+			return dir;
+		}
+
+		L1Character blocker = findBlockingCharacter(dir);
+		if (blocker == null) {
+			resetBlockerRetryState();
+			return -1;
+		}
+
+		_movementBlockedByCharacter = true;
+		if (shouldAttackBlockingCharacter(blocker)) {
+			_blockingAttackTarget = blocker;
+		}
+		return -1;
 	}
 
 	private int resolveBlockedDirection(int dir) {

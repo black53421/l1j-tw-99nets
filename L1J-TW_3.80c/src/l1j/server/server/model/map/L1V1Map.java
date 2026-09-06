@@ -277,6 +277,75 @@ public class L1V1Map extends L1Map {
 	}
 
 	@Override
+	public boolean isTerrainPassable(int x, int y, int heading) {
+		int tile1 = accessOriginalTile(x, y);
+		int tile2;
+
+		if (heading == 0) {
+			tile2 = accessOriginalTile(x, y - 1);
+		}
+		else if (heading == 1) {
+			tile2 = accessOriginalTile(x + 1, y - 1);
+		}
+		else if (heading == 2) {
+			tile2 = accessOriginalTile(x + 1, y);
+		}
+		else if (heading == 3) {
+			tile2 = accessOriginalTile(x + 1, y + 1);
+		}
+		else if (heading == 4) {
+			tile2 = accessOriginalTile(x, y + 1);
+		}
+		else if (heading == 5) {
+			tile2 = accessOriginalTile(x - 1, y + 1);
+		}
+		else if (heading == 6) {
+			tile2 = accessOriginalTile(x - 1, y);
+		}
+		else if (heading == 7) {
+			tile2 = accessOriginalTile(x - 1, y - 1);
+		}
+		else {
+			return false;
+		}
+
+		if (!((tile2 & 0x02) == 0x02 || (tile2 & 0x01) == 0x01)) {
+			return false;
+		}
+
+		if (heading == 0) {
+			return (tile1 & 0x02) == 0x02;
+		}
+		else if (heading == 1) {
+			int tile3 = accessOriginalTile(x, y - 1);
+			int tile4 = accessOriginalTile(x + 1, y);
+			return ((tile3 & 0x01) == 0x01) || ((tile4 & 0x02) == 0x02);
+		}
+		else if (heading == 2) {
+			return (tile1 & 0x01) == 0x01;
+		}
+		else if (heading == 3) {
+			int tile3 = accessOriginalTile(x, y + 1);
+			return (tile3 & 0x01) == 0x01;
+		}
+		else if (heading == 4) {
+			return (tile2 & 0x02) == 0x02;
+		}
+		else if (heading == 5) {
+			return ((tile2 & 0x01) == 0x01) || ((tile2 & 0x02) == 0x02);
+		}
+		else if (heading == 6) {
+			return (tile2 & 0x01) == 0x01;
+		}
+		else if (heading == 7) {
+			int tile3 = accessOriginalTile(x - 1, y);
+			return (tile3 & 0x02) == 0x02;
+		}
+
+		return false;
+	}
+
+	@Override
 	public void setPassable(Point pt, boolean isPassable) {
 		setPassable(pt.getX(), pt.getY(), isPassable);
 	}

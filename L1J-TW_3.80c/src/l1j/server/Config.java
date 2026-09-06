@@ -190,6 +190,8 @@ public final class Config {
 
 	public static boolean PET_HUNGER_AFFECTS_OBEDIENCE;
 
+	public static boolean SERVER_PLAYER_COLLISION_ENABLED;
+
 	public static boolean BATCH_ENCHANT_ENABLED;
 
 	public static int BATCH_ENCHANT_MAX_ITEMS;
@@ -605,6 +607,8 @@ public final class Config {
 					altSettings.getProperty("PetMonsterMagicSecondaryAoeDamageRate", "100"));
 			PET_HUNGER_AFFECTS_OBEDIENCE = Boolean.parseBoolean(
 					altSettings.getProperty("PetHungerAffectsObedience", "true"));
+			SERVER_PLAYER_COLLISION_ENABLED = Boolean.parseBoolean(
+					altSettings.getProperty("ServerPlayerCollisionEnabled", "false"));
 			if (PET_MONSTER_MAGIC_PRIMARY_DAMAGE_RATE < 0
 					|| PET_MONSTER_MAGIC_PRIMARY_DAMAGE_RATE > 100) {
 				_log.warning("PetMonsterMagicPrimaryDamageRate must be between 0 and 100. Using default value 100.");
@@ -1040,6 +1044,9 @@ public final class Config {
 		}
 		else if (pName.equalsIgnoreCase("PetHungerAffectsObedience")) {
 			PET_HUNGER_AFFECTS_OBEDIENCE = Boolean.parseBoolean(pValue);
+		}
+		else if (pName.equalsIgnoreCase("ServerPlayerCollisionEnabled")) {
+			SERVER_PLAYER_COLLISION_ENABLED = Boolean.parseBoolean(pValue);
 		}
 		else if (pName.equalsIgnoreCase("ChangeTitleByOneself")) {
 			CHANGE_TITLE_BY_ONESELF = Boolean.valueOf(pValue);
