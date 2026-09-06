@@ -481,7 +481,8 @@ public class L1SummonInstance extends L1NpcInstance {
 				} else if (petObject instanceof L1PetInstance) { // ペット
 					L1PetInstance pet = (L1PetInstance) petObject;
 					if ((player != null)
-							&& (player.getLevel() >= pet.getLevel()) && pet.get_food() > 0) {
+							&& (player.getLevel() >= pet.getLevel())
+							&& pet.isHungerObedienceSatisfied()) {
 						pet.setCurrentPetStatus(status);
 					} else {
 						if (!pet.isDead()) {

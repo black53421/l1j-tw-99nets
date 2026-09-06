@@ -188,6 +188,8 @@ public final class Config {
 
 	public static int PET_MONSTER_MAGIC_SECONDARY_AOE_DAMAGE_RATE;
 
+	public static boolean PET_HUNGER_AFFECTS_OBEDIENCE;
+
 	public static boolean BATCH_ENCHANT_ENABLED;
 
 	public static int BATCH_ENCHANT_MAX_ITEMS;
@@ -601,6 +603,8 @@ public final class Config {
 					altSettings.getProperty("PetMonsterMagicPrimaryDamageRate", "100"));
 			PET_MONSTER_MAGIC_SECONDARY_AOE_DAMAGE_RATE = Integer.parseInt(
 					altSettings.getProperty("PetMonsterMagicSecondaryAoeDamageRate", "100"));
+			PET_HUNGER_AFFECTS_OBEDIENCE = Boolean.parseBoolean(
+					altSettings.getProperty("PetHungerAffectsObedience", "true"));
 			if (PET_MONSTER_MAGIC_PRIMARY_DAMAGE_RATE < 0
 					|| PET_MONSTER_MAGIC_PRIMARY_DAMAGE_RATE > 100) {
 				_log.warning("PetMonsterMagicPrimaryDamageRate must be between 0 and 100. Using default value 100.");
@@ -1033,6 +1037,9 @@ public final class Config {
 		}
 		else if (pName.equalsIgnoreCase("AttackMessageOn")) {
 			ALT_ATKMSG = Boolean.valueOf(pValue);
+		}
+		else if (pName.equalsIgnoreCase("PetHungerAffectsObedience")) {
+			PET_HUNGER_AFFECTS_OBEDIENCE = Boolean.parseBoolean(pValue);
 		}
 		else if (pName.equalsIgnoreCase("ChangeTitleByOneself")) {
 			CHANGE_TITLE_BY_ONESELF = Boolean.valueOf(pValue);

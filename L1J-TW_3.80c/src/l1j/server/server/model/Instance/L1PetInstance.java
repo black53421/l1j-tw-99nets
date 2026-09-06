@@ -20,6 +20,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Timer;
 
+import l1j.server.Config;
 import l1j.server.server.ActionCodes;
 import l1j.server.server.IdFactory;
 import l1j.server.server.datatables.ExpTable;
@@ -471,17 +472,21 @@ public class L1PetInstance extends L1NpcInstance {
 		}
 	}
 
+	public boolean isHungerObedienceSatisfied() {
+		return !Config.PET_HUNGER_AFFECTS_OBEDIENCE || get_food() > 0;
+	}
+
 	// 哨子呼叫寵物
 	public void call() {
 		int id = _type.getMessageId(L1PetType.getMessageNumber(getLevel()));
 		if (id != 0 && !isDead()) {
-			if (get_food() == 0) {
+			if (!isHungerObedienceSatisfied()) {
 				id = _type.getDefyMessageId();
 			}
 			broadcastPacket(new S_NpcChatPacket(this, "$" + id, 0));
 		}
 
-		if (get_food() > 0) {
+		if (isHungerObedienceSatisfied()) {
 			setCurrentPetStatus(7); // 前往主人身邊並休息
 		} else {
 			setCurrentPetStatus(3); // 休息
@@ -491,7 +496,7 @@ public class L1PetInstance extends L1NpcInstance {
 	public void setTarget(L1Character target) {
 		if ((target != null)
 				&& ((_currentPetStatus == 1) || (_currentPetStatus == 2) || (_currentPetStatus == 5))
-				&& (get_food() > 0)) {
+				&& isHungerObedienceSatisfied()) {
 			setHate(target, 0);
 			if (!isAiRunning()) {
 				startAI();
@@ -502,7 +507,7 @@ public class L1PetInstance extends L1NpcInstance {
 	public void setMasterTarget(L1Character target) {
 		if ((target != null)
 				&& ((_currentPetStatus == 1) || (_currentPetStatus == 5))
-				&& (get_food() > 0)) {
+				&& isHungerObedienceSatisfied()) {
 			setHate(target, 0);
 			if (!isAiRunning()) {
 				startAI();
@@ -599,7 +604,8 @@ public class L1PetInstance extends L1NpcInstance {
 				if (petObject instanceof L1PetInstance) { // 寵物
 					L1PetInstance pet = (L1PetInstance) petObject;
 					if ((_petMaster != null)
-							&& (_petMaster.getLevel() >= pet.getLevel()) && pet.get_food() > 0) {
+							&& (_petMaster.getLevel() >= pet.getLevel())
+							&& pet.isHungerObedienceSatisfied()) {
 						pet.setCurrentPetStatus(status);
 					} else {
 						if (!pet.isDead()) {

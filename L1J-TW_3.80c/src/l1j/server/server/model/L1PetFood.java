@@ -36,14 +36,16 @@ public class L1PetFood extends TimerTask {
 			_food = _pet.get_food() - 2;
 			if (_food <= 0) {
 				_pet.set_food(0);
-				_pet.setCurrentPetStatus(3);
+				if (!_pet.isHungerObedienceSatisfied()) {
+					_pet.setCurrentPetStatus(3);
 
-				// 非常餓時提醒主人
-				L1PetType type = PetTypeTable.getInstance().get(
-						_pet.getNpcTemplate().get_npcId());
-				int id = type.getDefyMessageId();
-				if (id != 0) {
-					_pet.broadcastPacket(new S_NpcChatPacket(_pet, "$" + id, 0));
+					// Notify the master when the pet becomes too hungry to obey.
+					L1PetType type = PetTypeTable.getInstance().get(
+							_pet.getNpcTemplate().get_npcId());
+					int id = type.getDefyMessageId();
+					if (id != 0) {
+						_pet.broadcastPacket(new S_NpcChatPacket(_pet, "$" + id, 0));
+					}
 				}
 			} else {
 				_pet.set_food(_food);
