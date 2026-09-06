@@ -182,6 +182,10 @@ public final class Config {
 
 	public static boolean ALT_ATKMSG;
 
+	public static int PET_MONSTER_MAGIC_PRIMARY_DAMAGE_RATE;
+
+	public static int PET_MONSTER_MAGIC_SECONDARY_AOE_DAMAGE_RATE;
+
 	public static boolean BATCH_ENCHANT_ENABLED;
 
 	public static int BATCH_ENCHANT_MAX_ITEMS;
@@ -590,6 +594,20 @@ public final class Config {
 			LOOTING_RANGE = Integer.parseInt(altSettings.getProperty("LootingRange", "3"));
 			ALT_NONPVP = Boolean.parseBoolean(altSettings.getProperty("NonPvP", "true"));
 			ALT_ATKMSG = Boolean.parseBoolean(altSettings.getProperty("AttackMessageOn", "true"));
+			PET_MONSTER_MAGIC_PRIMARY_DAMAGE_RATE = Integer.parseInt(
+					altSettings.getProperty("PetMonsterMagicPrimaryDamageRate", "100"));
+			PET_MONSTER_MAGIC_SECONDARY_AOE_DAMAGE_RATE = Integer.parseInt(
+					altSettings.getProperty("PetMonsterMagicSecondaryAoeDamageRate", "100"));
+			if (PET_MONSTER_MAGIC_PRIMARY_DAMAGE_RATE < 0
+					|| PET_MONSTER_MAGIC_PRIMARY_DAMAGE_RATE > 100) {
+				_log.warning("PetMonsterMagicPrimaryDamageRate must be between 0 and 100. Using default value 100.");
+				PET_MONSTER_MAGIC_PRIMARY_DAMAGE_RATE = 100;
+			}
+			if (PET_MONSTER_MAGIC_SECONDARY_AOE_DAMAGE_RATE < 0
+					|| PET_MONSTER_MAGIC_SECONDARY_AOE_DAMAGE_RATE > 100) {
+				_log.warning("PetMonsterMagicSecondaryAoeDamageRate must be between 0 and 100. Using default value 100.");
+				PET_MONSTER_MAGIC_SECONDARY_AOE_DAMAGE_RATE = 100;
+			}
 			BATCH_ENCHANT_ENABLED = Boolean.parseBoolean(
 					altSettings.getProperty("BatchEnchantEnabled", "false"));
 			BATCH_ENCHANT_MAX_ITEMS = Integer.parseInt(

@@ -21,6 +21,7 @@ import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
+import l1j.server.Config;
 import l1j.server.server.ActionCodes;
 import l1j.server.server.datatables.PolyTable;
 import l1j.server.server.datatables.SkillsTable;
@@ -248,6 +249,22 @@ public class L1SkillUse {
 
 	public int getLeverage() {
 		return _leverage;
+	}
+
+	private int applyPetMonsterMagicDamageRate(L1Character target, int damage) {
+		if (damage <= 0 || !(_user instanceof L1MonsterInstance) || !(target instanceof L1PetInstance)) {
+			return damage;
+		}
+
+		int rate = Config.PET_MONSTER_MAGIC_SECONDARY_AOE_DAMAGE_RATE;
+		if (target.getId() == _targetID) {
+			rate = Config.PET_MONSTER_MAGIC_PRIMARY_DAMAGE_RATE;
+		}
+
+		if (rate == 100) {
+			return damage;
+		}
+		return (int) (((long) damage * rate) / 100L);
 	}
 
 	private boolean isCheckedUseSkill() {
@@ -1710,6 +1727,7 @@ public class L1SkillUse {
 						continue;
 					}
 					dmg = _magic.calcMagicDamage(_skillId);
+					dmg = applyPetMonsterMagicDamageRate(cha, dmg);
 					_dmg = dmg;
 					cha.removeSkillEffect(ERASE_MAGIC); // イレースマジック中なら、攻撃魔法で解除
 				}
