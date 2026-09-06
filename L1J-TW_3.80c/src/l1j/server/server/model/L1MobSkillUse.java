@@ -284,7 +284,7 @@ public class L1MobSkillUse {
 
 		if (skillid > 0) {
 			skillUse.setSkillRanged(getMobSkillTemplate().getRange(idx)); // 變更技能施放距離
-			skillUse.setSkillRanged(getMobSkillTemplate().getSkillArea(idx)); // 變更技能施放範圍
+			skillUse.setSkillArea(getMobSkillTemplate().getSkillArea(idx)); // 變更技能施放範圍
 			canUseSkill = skillUse.checkUseSkill(null, skillid, _target.getId(), _target.getX(), _target.getY(), null, 0, L1SkillUse.TYPE_NORMAL,
 					_attacker, actId, gfxId, mpConsume);
 		}
