@@ -406,7 +406,7 @@ public class CalcExp {
 		int petItemObjId = pet.getItemObjId();
 
 		int levelBefore = pet.getLevel();
-		int totalExp = (int) (exp * Config.RATE_XP + pet.getExp());
+		int totalExp = (int) (exp * Config.PET_EXP_RATE + pet.getExp());
 		if (totalExp >= ExpTable.getExpByLevel(51)) {
 			totalExp = ExpTable.getExpByLevel(51) - 1;
 		}

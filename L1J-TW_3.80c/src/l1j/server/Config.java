@@ -123,6 +123,8 @@ public final class Config {
 	/** Rate control */
 	public static double RATE_XP;
 
+	public static double PET_EXP_RATE;
+
 	public static double RATE_LA;
 
 	public static double RATE_KARMA;
@@ -552,6 +554,7 @@ public final class Config {
 			is.close();
 
 			RATE_XP = Double.parseDouble(rateSettings.getProperty("RateXp", "1.0"));
+			PET_EXP_RATE = Double.parseDouble(rateSettings.getProperty("PetExpRate", "1.0"));
 			RATE_LA = Double.parseDouble(rateSettings.getProperty("RateLawful", "1.0"));
 			RATE_KARMA = Double.parseDouble(rateSettings.getProperty("RateKarma", "1.0"));
 			RATE_DROP_ADENA = Double.parseDouble(rateSettings.getProperty("RateDropAdena", "1.0"));
@@ -899,6 +902,11 @@ public final class Config {
 	}
 
 	private static void validate() {
+		if (Double.isNaN(Config.PET_EXP_RATE) || Double.isInfinite(Config.PET_EXP_RATE)
+				|| Config.PET_EXP_RATE < 0.0 || Config.PET_EXP_RATE > 32767.0) {
+			throw new IllegalStateException("PetExpRate must be between 0.0 and 32767.0.");
+		}
+
 		if (!IntRange.includes(Config.RANDOM_TELEPORT_MIN_EXIT_COUNT, 0, 8)) {
 			throw new IllegalStateException("RandomTeleportMinExitCount must be between 0 and 8.");
 		}
@@ -975,6 +983,13 @@ public final class Config {
 		// rates.properties
 		else if (pName.equalsIgnoreCase("RateXp")) {
 			RATE_XP = Double.parseDouble(pValue);
+		}
+		else if (pName.equalsIgnoreCase("PetExpRate")) {
+			double value = Double.parseDouble(pValue);
+			if (Double.isNaN(value) || Double.isInfinite(value) || value < 0.0 || value > 32767.0) {
+				return false;
+			}
+			PET_EXP_RATE = value;
 		}
 		else if (pName.equalsIgnoreCase("RateLawful")) {
 			RATE_LA = Double.parseDouble(pValue);
