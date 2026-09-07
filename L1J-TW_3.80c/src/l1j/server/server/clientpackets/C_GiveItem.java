@@ -118,7 +118,7 @@ public class C_GiveItem extends ClientBasePacket {
 
 		// 捕抓寵物
 		if (item.getItemId() == petType.getItemIdForTaming()) {
-			tamePet(pc, target);
+			tamePet(pc, target, petType);
 		}
 		// 進化寵物
 		else if (item.getItemId() == petType.getEvolvItemId()) {
@@ -210,7 +210,7 @@ public class C_GiveItem extends ClientBasePacket {
 		return false;
 	}
 
-	private void tamePet(L1PcInstance pc, L1NpcInstance target) {
+	private void tamePet(L1PcInstance pc, L1NpcInstance target, L1PetType petType) {
 		if ((target instanceof L1PetInstance)
 				|| (target instanceof L1SummonInstance)) {
 			return;
@@ -238,7 +238,7 @@ public class C_GiveItem extends ClientBasePacket {
 
 		L1PcInventory inv = pc.getInventory();
 		if ((charisma >= 6) && (inv.getSize() < 180)) {
-			if (isTamePet(target)) {
+			if (isTamePet(target, petType)) {
 				L1ItemInstance petamu = inv.storeItem(40314, 1); // 漂浮之眼的肉
 				if (petamu != null) {
 					new L1PetInstance(target, pc, petamu.getId());
@@ -270,33 +270,20 @@ public class C_GiveItem extends ClientBasePacket {
 		}
 	}
 
-	private boolean isTamePet(L1NpcInstance npc) {
-		boolean isSuccess = false;
-		int npcId = npc.getNpcTemplate().get_npcId();
-		/*
-		if (npcId == 45313) { // タイガー
-			if ((npc.getMaxHp() / 3 > npc.getCurrentHp() // HPが1/3未満で1/16の確率
-					)
-					&& (Random.nextInt(16) == 15)) {
-				isSuccess = true;
-			}
-		} else {
-			if (npc.getMaxHp() / 3 > npc.getCurrentHp()) {
-				isSuccess = true;
-			}
+	private boolean isTamePet(L1NpcInstance npc, L1PetType petType) {
+		if ((npc.getMaxHp() - 1) <= npc.getCurrentHp()) {
+			return false;
 		}
 
-		if ((npcId == 45313) || (npcId == 45044) || (npcId == 45711)) { // タイガー、ラクーン、紀州犬の子犬
-			if (npc.isResurrect()) { // RES後はテイム不可
-				isSuccess = false;
-			}
+		int tameChance = petType.getTameChance();
+		if (tameChance <= 0) {
+			return false;
 		}
-		*/
-		if ((npc.getMaxHp() - 1) > npc.getCurrentHp()) {
-			isSuccess = true;
+		if (tameChance >= L1PetType.MAX_TAME_CHANCE) {
+			return true;
 		}
-		
-		return isSuccess;
+
+		return Random.nextInt(L1PetType.MAX_TAME_CHANCE) < tameChance;
 	}
 
 	@Override

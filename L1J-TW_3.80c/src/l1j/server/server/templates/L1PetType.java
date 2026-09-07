@@ -18,6 +18,8 @@ import l1j.server.server.datatables.NpcTable;
 import l1j.server.server.utils.IntRange;
 
 public class L1PetType {
+	public static final int MAX_TAME_CHANCE = 10000;
+
 	private final int _baseNpcId;
 
 	private final L1Npc _baseNpcTemplate;
@@ -29,6 +31,8 @@ public class L1PetType {
 	private final String _name;
 
 	private final int _itemIdForTaming;
+
+	private final int _tameChance;
 
 	private final IntRange _hpUpRange;
 
@@ -45,7 +49,7 @@ public class L1PetType {
 	private final boolean _canUseEquipment;
 
 	public L1PetType(int baseNpcId, int petNpcId, String name, int itemIdForTaming,
-			IntRange hpUpRange, IntRange mpUpRange, int evolvItemId, int npcIdForEvolving,
+			int tameChance, IntRange hpUpRange, IntRange mpUpRange, int evolvItemId, int npcIdForEvolving,
 			int msgIds[], int defyMsgId, boolean canUseEquipment) {
 		_baseNpcId = baseNpcId;
 		_baseNpcTemplate = NpcTable.getInstance().getTemplate(baseNpcId);
@@ -53,6 +57,7 @@ public class L1PetType {
 		_petNpcTemplate = NpcTable.getInstance().getTemplate(_petNpcId);
 		_name = name;
 		_itemIdForTaming = itemIdForTaming;
+		_tameChance = tameChance;
 		_hpUpRange = hpUpRange;
 		_mpUpRange = mpUpRange;
 		_evolvItemId = evolvItemId;
@@ -89,6 +94,10 @@ public class L1PetType {
 
 	public boolean canTame() {
 		return _itemIdForTaming != 0;
+	}
+
+	public int getTameChance() {
+		return _tameChance;
 	}
 
 	public IntRange getHpUpRange() {
