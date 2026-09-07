@@ -275,6 +275,19 @@ public class C_GiveItem extends ClientBasePacket {
 			return false;
 		}
 
+		int tameHpPercent = petType.getTameHpPercent();
+		if (tameHpPercent <= 0) {
+			return false;
+		}
+		if (tameHpPercent < L1PetType.MAX_TAME_HP_PERCENT) {
+			long currentHpRatio = (long) npc.getCurrentHp()
+					* L1PetType.MAX_TAME_HP_PERCENT;
+			long tameHpThreshold = (long) npc.getMaxHp() * tameHpPercent;
+			if (currentHpRatio > tameHpThreshold) {
+				return false;
+			}
+		}
+
 		int tameChance = petType.getTameChance();
 		if (tameChance <= 0) {
 			return false;

@@ -67,6 +67,8 @@ public class PetTypeTable {
 				String name = rs.getString("Name");
 				int itemIdForTaming = rs.getInt("ItemIdForTaming");
 				int tameChance = normalizeTameChance(baseNpcId, rs.getInt("TameChance"));
+				int tameHpPercent = normalizeTameHpPercent(baseNpcId,
+						rs.getInt("TameHpPercent"));
 				int hpUpMin = rs.getInt("HpUpMin");
 				int hpUpMax = rs.getInt("HpUpMax");
 				int mpUpMin = rs.getInt("MpUpMin");
@@ -82,7 +84,8 @@ public class PetTypeTable {
 				IntRange hpUpRange = new IntRange(hpUpMin, hpUpMax);
 				IntRange mpUpRange = new IntRange(mpUpMin, mpUpMax);
 				L1PetType type = new L1PetType(baseNpcId, petNpcId, name,
-						itemIdForTaming, tameChance, hpUpRange, mpUpRange, evolvItemId,
+						itemIdForTaming, tameChance, tameHpPercent, hpUpRange, mpUpRange,
+						evolvItemId,
 						npcIdForEvolving, msgIds, defyMsgId, canUseEquipment);
 
 				if (type.getBaseNpcTemplate() == null) {
@@ -126,6 +129,21 @@ public class PetTypeTable {
 			return L1PetType.MAX_TAME_CHANCE;
 		}
 		return tameChance;
+	}
+
+	private int normalizeTameHpPercent(int baseNpcId, int tameHpPercent) {
+		if (tameHpPercent < 0) {
+			_log.warning("pettypes: TameHpPercent for BaseNpcId " + baseNpcId
+					+ " is below 0; clamped to 0.");
+			return 0;
+		}
+		if (tameHpPercent > L1PetType.MAX_TAME_HP_PERCENT) {
+			_log.warning("pettypes: TameHpPercent for BaseNpcId " + baseNpcId
+					+ " exceeds " + L1PetType.MAX_TAME_HP_PERCENT
+					+ "; clamped to the maximum.");
+			return L1PetType.MAX_TAME_HP_PERCENT;
+		}
+		return tameHpPercent;
 	}
 
 	private void registerType(int npcId, L1PetType type, String source) {
