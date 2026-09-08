@@ -1996,26 +1996,9 @@ public class L1NpcInstance extends L1Character {
 				return firstCource[i];
 			}
 			if (serchMap[locNext[0]][locNext[1]]) {
-				int tmpX = locNext[0] + diff_x;
-				int tmpY = locNext[1] + diff_y;
-				boolean found = false;
-				if (i == 0) {
-					found = getMap().isPassable(tmpX, tmpY + 1, i);
-				} else if (i == 1) {
-					found = getMap().isPassable(tmpX - 1, tmpY + 1, i);
-				} else if (i == 2) {
-					found = getMap().isPassable(tmpX - 1, tmpY, i);
-				} else if (i == 3) {
-					found = getMap().isPassable(tmpX - 1, tmpY - 1, i);
-				} else if (i == 4) {
-					found = getMap().isPassable(tmpX, tmpY - 1, i);
-				} else if (i == 5) {
-					found = getMap().isPassable(tmpX + 1, tmpY - 1, i);
-				} else if (i == 6) {
-					found = getMap().isPassable(tmpX + 1, tmpY, i);
-				} else if (i == 7) {
-					found = getMap().isPassable(tmpX + 1, tmpY + 1, i);
-				}
+				int searchDir = firstCource[i];
+				boolean found = getMap().isPassable(
+						locBace[0] + diff_x, locBace[1] + diff_y, searchDir);
 				if (found)// 移動経路があった場合
 				{
 					locCopy = new int[4];
@@ -2041,20 +2024,9 @@ public class L1NpcInstance extends L1Character {
 					return locNext[3];
 				}
 				if (serchMap[locNext[0]][locNext[1]]) {
-					int tmpX = locNext[0] + diff_x;
-					int tmpY = locNext[1] + diff_y;
-					boolean found = false;
-					if (i == 0) {
-						found = getMap().isPassable(tmpX, tmpY + 1, i);
-					} else if (i == 1) {
-						found = getMap().isPassable(tmpX - 1, tmpY + 1, i);
-					} else if (i == 2) {
-						found = getMap().isPassable(tmpX - 1, tmpY, i);
-					} else if (i == 3) {
-						found = getMap().isPassable(tmpX - 1, tmpY - 1, i);
-					} else if (i == 4) {
-						found = getMap().isPassable(tmpX, tmpY - 1, i);
-					}
+					int searchDir = dirFront[i];
+					boolean found = getMap().isPassable(
+							locBace[0] + diff_x, locBace[1] + diff_y, searchDir);
 					if (found) // 移動経路があった場合
 					{
 						locCopy = new int[4];
