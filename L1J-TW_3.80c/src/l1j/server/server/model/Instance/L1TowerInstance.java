@@ -25,6 +25,7 @@ import l1j.server.server.model.L1Object;
 import l1j.server.server.model.L1War;
 import l1j.server.server.model.L1WarSpawn;
 import l1j.server.server.model.L1World;
+import l1j.server.server.model.L1TileOccupancy;
 import l1j.server.server.serverpackets.S_DoActionGFX;
 import l1j.server.server.serverpackets.S_NPCPack;
 import l1j.server.server.serverpackets.S_RemoveObject;
@@ -209,7 +210,7 @@ public class L1TowerInstance extends L1NpcInstance {
 			setStatus(ActionCodes.ACTION_TowerDie);
 			int targetobjid = npc.getId();
 
-			npc.getMap().setPassable(npc.getLocation(), true);
+			L1TileOccupancy.releaseTile(npc, npc.getX(), npc.getY());
 
 			npc.broadcastPacket(new S_DoActionGFX(targetobjid, ActionCodes.ACTION_TowerDie));
 

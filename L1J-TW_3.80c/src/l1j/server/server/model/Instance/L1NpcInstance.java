@@ -55,6 +55,7 @@ import l1j.server.server.model.L1NpcRegenerationTimer;
 import l1j.server.server.model.L1Object;
 import l1j.server.server.model.L1MovementCoordinator;
 import l1j.server.server.model.L1Spawn;
+import l1j.server.server.model.L1TileOccupancy;
 import l1j.server.server.model.L1World;
 import l1j.server.server.model.map.L1Map;
 import l1j.server.server.model.map.L1WorldMap;
@@ -908,11 +909,11 @@ public class L1NpcInstance extends L1Character {
 			pc.removeKnownObject(this);
 		}
 
-		getMap().setPassable(getX(), getY(), true);
+		L1TileOccupancy.releaseTile(this, getX(), getY());
 		setX(nx);
 		setY(ny);
 		setHeading(heading);
-		getMap().setPassable(getX(), getY(), false);
+		L1TileOccupancy.occupyTile(this, getX(), getY());
 
 		List<L1PcInstance> newViewers = L1World.getInstance().getVisiblePlayer(this);
 		for (L1PcInstance pc : oldViewers) {

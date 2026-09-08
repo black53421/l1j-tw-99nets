@@ -1,9 +1,5 @@
 package l1j.server.server.model;
 
-import l1j.server.server.ActionCodes;
-import l1j.server.server.model.Instance.L1DollInstance;
-import l1j.server.server.model.Instance.L1DoorInstance;
-import l1j.server.server.model.Instance.L1EffectInstance;
 import l1j.server.server.model.Instance.L1NpcInstance;
 import l1j.server.server.model.Instance.L1PcInstance;
 import l1j.server.server.model.L1PlayerMovementCollision.Result;
@@ -97,7 +93,7 @@ public final class L1MovementCoordinator {
 		releaseSourceTile(pc, fromX, fromY);
 		pc.getLocation().set(targetX, targetY);
 		pc.setHeading(heading);
-		pc.getMap().setPassable(targetX, targetY, false);
+		L1TileOccupancy.occupyTile(pc, targetX, targetY);
 		return collision;
 	}
 
@@ -112,52 +108,12 @@ public final class L1MovementCoordinator {
 		npc.setX(targetX);
 		npc.setY(targetY);
 		npc.setHeading(heading);
-		npc.getMap().setPassable(targetX, targetY, false);
+		L1TileOccupancy.occupyTile(npc, targetX, targetY);
 		return true;
 	}
 
 	private static void releaseSourceTile(L1Character mover, int x, int y) {
-		// Player movement is the recovery path for legacy overlaps created
-		// before the atomic walking lock was installed. Preserve the blocked
-		// bit if another physical character still occupies the old tile.
-		if ((mover instanceof L1PcInstance)
-				&& hasOtherPhysicalOccupant(mover, x, y)) {
-			mover.getMap().setPassable(x, y, false);
-			return;
-		}
-		mover.getMap().setPassable(x, y, true);
-	}
-
-	private static boolean hasOtherPhysicalOccupant(L1Character mover, int x,
-			int y) {
-		for (L1Object object : mover.getKnownObjects()) {
-			if ((object == mover) || !(object instanceof L1Character)
-					|| (object.getMapId() != mover.getMapId())
-					|| (object.getX() != x) || (object.getY() != y)) {
-				continue;
-			}
-
-			L1Character character = (L1Character) object;
-			if (!character.isDead() && isPhysicalOccupant(character)) {
-				return true;
-			}
-		}
-		return false;
-	}
-
-	private static boolean isPhysicalOccupant(L1Character character) {
-		if ((character instanceof L1EffectInstance)
-				|| (character instanceof L1DollInstance)) {
-			return false;
-		}
-
-		if (character instanceof L1DoorInstance) {
-			L1DoorInstance door = (L1DoorInstance) character;
-			return door.getOpenStatus() != ActionCodes.ACTION_Open;
-		}
-
-		return (character instanceof L1PcInstance)
-				|| (character instanceof L1NpcInstance);
+		L1TileOccupancy.releaseTile(mover, x, y);
 	}
 
 	private static int lockIndex(int mapId, int x, int y) {

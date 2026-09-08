@@ -33,6 +33,7 @@ import l1j.server.server.model.L1Character;
 import l1j.server.server.model.L1NpcTalkData;
 import l1j.server.server.model.L1Object;
 import l1j.server.server.model.L1World;
+import l1j.server.server.model.L1TileOccupancy;
 import l1j.server.server.model.identity.L1SystemMessageId;
 import l1j.server.server.serverpackets.S_ChangeHeading;
 import l1j.server.server.serverpackets.S_DoActionGFX;
@@ -459,7 +460,7 @@ public class L1GuardianInstance extends L1NpcInstance {
 			setDead(true);
 			setStatus(ActionCodes.ACTION_Die);
 			int targetobjid = getId();
-			getMap().setPassable(getLocation(), true);
+			L1TileOccupancy.releaseTile(L1GuardianInstance.this, getX(), getY());
 			broadcastPacket(new S_DoActionGFX(targetobjid,
 					ActionCodes.ACTION_Die));
 

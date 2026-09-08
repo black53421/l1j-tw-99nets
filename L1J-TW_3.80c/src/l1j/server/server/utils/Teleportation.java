@@ -24,6 +24,7 @@ import java.util.logging.Logger;
 import l1j.server.server.model.L1Clan;
 import l1j.server.server.model.L1DragonSlayer;
 import l1j.server.server.model.L1Location;
+import l1j.server.server.model.L1TileOccupancy;
 import l1j.server.server.model.L1World;
 import l1j.server.server.model.Instance.L1DollInstance;
 import l1j.server.server.model.Instance.L1NpcInstance;
@@ -70,7 +71,6 @@ public class Teleportation {
 		}
 
 		pc.setTeleport(true);
-		final L1Map oldMap = pc.getMap();
 		final int oldX = pc.getX();
 		final int oldY = pc.getY();
 
@@ -82,10 +82,10 @@ public class Teleportation {
 			}
 		}
 
-		oldMap.setPassable(oldX, oldY, true);
+		L1TileOccupancy.releaseTile(pc, oldX, oldY);
 		L1World.getInstance().moveVisibleObject(pc, mapId);
 		pc.setLocation(x, y, mapId);
-		pc.getMap().setPassable(pc.getLocation(), false);
+		L1TileOccupancy.occupyTile(pc, pc.getX(), pc.getY());
 		pc.setHeading(head);
 		pc.sendPackets(new S_MapID(pc.getMapId(), pc.getMap().isUnderwater()));
 
@@ -215,12 +215,12 @@ public class Teleportation {
 
 	private static void teleport(L1NpcInstance npc, int x, int y, short map, int head) {
 		L1World.getInstance().moveVisibleObject(npc, map);
-		L1WorldMap.getInstance().getMap(npc.getMapId()).setPassable(npc.getX(), npc.getY(), true);
+		L1TileOccupancy.releaseTile(npc, npc.getX(), npc.getY());
 		npc.setX(x);
 		npc.setY(y);
 		npc.setMap(map);
 		npc.setHeading(head);
-		L1WorldMap.getInstance().getMap(npc.getMapId()).setPassable(npc.getX(), npc.getY(), false);
+		L1TileOccupancy.occupyTile(npc, npc.getX(), npc.getY());
 	}
 
 }

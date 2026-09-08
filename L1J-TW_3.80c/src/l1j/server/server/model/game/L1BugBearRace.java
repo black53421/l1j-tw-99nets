@@ -26,6 +26,7 @@ import l1j.server.server.datatables.ShopTable;
 import l1j.server.server.model.L1Location;
 import l1j.server.server.model.L1Object;
 import l1j.server.server.model.L1World;
+import l1j.server.server.model.L1TileOccupancy;
 import l1j.server.server.model.Instance.L1DoorInstance;
 import l1j.server.server.model.Instance.L1MerchantInstance;
 import l1j.server.server.model.Instance.L1NpcInstance;
@@ -130,8 +131,8 @@ public class L1BugBearRace {
 				_runner[i].deleteMe();
 				if (_runner[i].getMap().isInMap(_runner[i].getX(),
 						_runner[i].getY())) {
-					_runner[i].getMap().setPassable(_runner[i].getX(),
-							_runner[i].getY(), true);
+					L1TileOccupancy.releaseTile(_runner[i], _runner[i].getX(),
+							_runner[i].getY());
 				}
 			}
 			_runner[i] = null;

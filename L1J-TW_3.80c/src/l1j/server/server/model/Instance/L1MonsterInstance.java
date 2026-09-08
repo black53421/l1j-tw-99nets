@@ -38,6 +38,7 @@ import l1j.server.server.model.L1NpcTalkData;
 import l1j.server.server.model.L1Object;
 import l1j.server.server.model.L1UltimateBattle;
 import l1j.server.server.model.L1World;
+import l1j.server.server.model.L1TileOccupancy;
 import l1j.server.server.model.skill.L1BuffUtil;
 import l1j.server.server.serverpackets.S_ChangeName;
 import l1j.server.server.serverpackets.S_CharVisualUpdate;
@@ -527,7 +528,7 @@ public class L1MonsterInstance extends L1NpcInstance {
 			setDead(true);
 			setStatus(ActionCodes.ACTION_Die);
 
-			getMap().setPassable(getLocation(), true);
+			L1TileOccupancy.releaseTile(L1MonsterInstance.this, getX(), getY());
 
 			broadcastPacket(new S_DoActionGFX(getId(), ActionCodes.ACTION_Die));
 			// 變形判斷

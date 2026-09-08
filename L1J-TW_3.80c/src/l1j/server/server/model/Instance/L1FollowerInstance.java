@@ -25,6 +25,7 @@ import l1j.server.server.model.L1Inventory;
 import l1j.server.server.model.L1Object;
 import l1j.server.server.model.L1Quest;
 import l1j.server.server.model.L1World;
+import l1j.server.server.model.L1TileOccupancy;
 import l1j.server.server.serverpackets.S_FollowerPack;
 import l1j.server.server.serverpackets.S_NPCTalkReturn;
 import l1j.server.server.serverpackets.S_ServerMessage;
@@ -173,7 +174,7 @@ public class L1FollowerInstance extends L1NpcInstance {
 	@Override
 	public synchronized void deleteMe() {
 		_master.getFollowerList().remove(getId());
-		getMap().setPassable(getLocation(), true);
+		L1TileOccupancy.releaseTile(this, getX(), getY());
 		super.deleteMe();
 	}
 

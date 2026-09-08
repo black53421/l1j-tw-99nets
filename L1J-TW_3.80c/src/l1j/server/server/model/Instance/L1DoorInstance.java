@@ -18,6 +18,7 @@ import l1j.server.server.ActionCodes;
 import l1j.server.server.datatables.NpcTable;
 import l1j.server.server.model.L1Attack;
 import l1j.server.server.model.L1Character;
+import l1j.server.server.model.L1TileOccupancy;
 import l1j.server.server.model.L1Location;
 import l1j.server.server.model.L1World;
 import l1j.server.server.serverpackets.S_DoActionGFX;
@@ -154,7 +155,7 @@ public class L1DoorInstance extends L1NpcInstance {
 		setDead(true);
 		setStatus(ActionCodes.ACTION_DoorDie);
 
-		getMap().setPassable(getLocation(), true);
+		L1TileOccupancy.releaseTile(this, getX(), getY());
 
 		broadcastPacket(new S_DoActionGFX(getId(), ActionCodes.ACTION_DoorDie));
 		sendDoorPacket(null);

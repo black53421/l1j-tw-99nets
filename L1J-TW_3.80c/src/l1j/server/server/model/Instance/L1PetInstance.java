@@ -34,6 +34,7 @@ import l1j.server.server.model.L1Inventory;
 import l1j.server.server.model.L1Object;
 import l1j.server.server.model.L1PetFood;
 import l1j.server.server.model.L1World;
+import l1j.server.server.model.L1TileOccupancy;
 import l1j.server.server.serverpackets.S_DoActionGFX;
 import l1j.server.server.serverpackets.S_HPMeter;
 import l1j.server.server.serverpackets.S_NpcChatPacket;
@@ -288,7 +289,7 @@ public class L1PetInstance extends L1NpcInstance {
 			setStatus(ActionCodes.ACTION_Die);
 			setCurrentHp(0);
 
-			getMap().setPassable(getLocation(), true);
+			L1TileOccupancy.releaseTile(this, getX(), getY());
 			broadcastPacket(new S_DoActionGFX(getId(), ActionCodes.ACTION_Die));
 		}
 	}

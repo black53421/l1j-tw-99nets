@@ -24,6 +24,7 @@ import l1j.server.server.model.L1Character;
 import l1j.server.server.model.L1Clan;
 import l1j.server.server.model.L1NpcTalkData;
 import l1j.server.server.model.L1World;
+import l1j.server.server.model.L1TileOccupancy;
 import l1j.server.server.serverpackets.S_DoActionGFX;
 import l1j.server.server.serverpackets.S_NPCTalkReturn;
 import l1j.server.server.templates.L1Npc;
@@ -491,7 +492,7 @@ public class L1GuardInstance extends L1NpcInstance {
 			setDead(true);
 			setStatus(ActionCodes.ACTION_Die);
 
-			getMap().setPassable(getLocation(), true);
+			L1TileOccupancy.releaseTile(L1GuardInstance.this, getX(), getY());
 
 			broadcastPacket(new S_DoActionGFX(getId(), ActionCodes.ACTION_Die));
 

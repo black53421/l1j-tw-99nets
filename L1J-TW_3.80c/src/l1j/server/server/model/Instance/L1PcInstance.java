@@ -90,6 +90,7 @@ import l1j.server.server.model.L1TownLocation;
 import l1j.server.server.model.L1Trade;
 import l1j.server.server.model.L1War;
 import l1j.server.server.model.L1World;
+import l1j.server.server.model.L1TileOccupancy;
 import l1j.server.server.model.MpReductionByAwake;
 import l1j.server.server.model.MpRegeneration;
 import l1j.server.server.model.MpRegenerationByDoll;
@@ -1390,7 +1391,7 @@ public class L1PcInstance extends L1Character {
 			stopMpRegeneration();
 
 			int targetobjid = getId();
-			getMap().setPassable(getLocation(), true);
+			L1TileOccupancy.releaseTile(L1PcInstance.this, getX(), getY());
 
 			// エンチャントを解除する
 			// 変身状態も解除されるため、キャンセレーションをかけてから変身状態に戻す

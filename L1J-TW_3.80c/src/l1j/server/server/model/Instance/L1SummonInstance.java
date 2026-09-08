@@ -30,6 +30,7 @@ import l1j.server.server.model.L1Attack;
 import l1j.server.server.model.L1Character;
 import l1j.server.server.model.L1Inventory;
 import l1j.server.server.model.L1World;
+import l1j.server.server.model.L1TileOccupancy;
 import l1j.server.server.serverpackets.S_DoActionGFX;
 import l1j.server.server.serverpackets.S_HPMeter;
 import l1j.server.server.serverpackets.S_NpcChatPacket;
@@ -266,7 +267,7 @@ public class L1SummonInstance extends L1NpcInstance {
 			setCurrentHp(0);
 			setStatus(ActionCodes.ACTION_Die);
 
-			getMap().setPassable(getLocation(), true);
+			L1TileOccupancy.releaseTile(this, getX(), getY());
 
 			// 死亡時物品給予主人或掉落地面
 			L1Inventory targetInventory = _master.getInventory();
@@ -299,7 +300,7 @@ public class L1SummonInstance extends L1NpcInstance {
 	public synchronized void returnToNature() {
 		_isReturnToNature = true;
 		if (!_tamed) {
-			getMap().setPassable(getLocation(), true);
+			L1TileOccupancy.releaseTile(this, getX(), getY());
 			// アイテム解放処理
 			L1Inventory targetInventory = _master.getInventory();
 			List<L1ItemInstance> items = _inventory.getItems();
@@ -364,7 +365,7 @@ public class L1SummonInstance extends L1NpcInstance {
 		if (!isDead()) { // 原迷魅怪解散時死亡
 			setDead(true);
 			setCurrentHp(0);
-			getMap().setPassable(getLocation(), true);
+			L1TileOccupancy.releaseTile(this, getX(), getY());
 		}
 		deleteMe();
 		L1World.getInstance().storeObject(monster);
