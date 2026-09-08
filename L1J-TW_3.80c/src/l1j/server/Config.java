@@ -227,6 +227,18 @@ public final class Config {
 
 	public static int COMPANION_FOLLOW_RECOVERY_COOLDOWN_MS;
 
+	public static boolean COMPANION_TELEPORT_REACHABLE_PLACEMENT_ENABLED;
+
+	public static boolean COMPANION_TELEPORT_OVERLAP_FALLBACK_ENABLED;
+
+	public static int COMPANION_TELEPORT_PLACEMENT_RADIUS;
+
+	public static int COMPANION_TELEPORT_EMERGENCY_PLACEMENT_RADIUS;
+
+	public static int COMPANION_TELEPORT_MAX_PATH_DETOUR;
+
+	public static int COMPANION_TELEPORT_MAX_PATH_LENGTH;
+
 	public static boolean CHANGE_TITLE_BY_ONESELF;
 
 	public static int MAX_CLAN_MEMBER;
@@ -713,6 +725,40 @@ public final class Config {
 			if (COMPANION_FOLLOW_RECOVERY_COOLDOWN_MS < 0) {
 				_log.warning("CompanionFollowRecoveryCooldownMs must be 0 or greater. Using default value 1000.");
 				COMPANION_FOLLOW_RECOVERY_COOLDOWN_MS = 1000;
+			}
+			COMPANION_TELEPORT_REACHABLE_PLACEMENT_ENABLED = Boolean.parseBoolean(
+					altSettings.getProperty("CompanionTeleportReachablePlacementEnabled", "false"));
+			COMPANION_TELEPORT_OVERLAP_FALLBACK_ENABLED = Boolean.parseBoolean(
+					altSettings.getProperty("CompanionTeleportOverlapFallbackEnabled", "false"));
+			COMPANION_TELEPORT_PLACEMENT_RADIUS = Integer.parseInt(
+					altSettings.getProperty("CompanionTeleportPlacementRadius", "3"));
+			COMPANION_TELEPORT_EMERGENCY_PLACEMENT_RADIUS = Integer.parseInt(
+					altSettings.getProperty("CompanionTeleportEmergencyPlacementRadius", "6"));
+			COMPANION_TELEPORT_MAX_PATH_DETOUR = Integer.parseInt(
+					altSettings.getProperty("CompanionTeleportMaxPathDetour", "4"));
+			COMPANION_TELEPORT_MAX_PATH_LENGTH = Integer.parseInt(
+					altSettings.getProperty("CompanionTeleportMaxPathLength", "8"));
+			if ((COMPANION_TELEPORT_PLACEMENT_RADIUS < 1)
+					|| (COMPANION_TELEPORT_PLACEMENT_RADIUS > 20)) {
+				_log.warning("CompanionTeleportPlacementRadius must be between 1 and 20. Using default value 3.");
+				COMPANION_TELEPORT_PLACEMENT_RADIUS = 3;
+			}
+			if ((COMPANION_TELEPORT_EMERGENCY_PLACEMENT_RADIUS < COMPANION_TELEPORT_PLACEMENT_RADIUS)
+					|| (COMPANION_TELEPORT_EMERGENCY_PLACEMENT_RADIUS > 20)) {
+				int fallbackRadius = Math.max(COMPANION_TELEPORT_PLACEMENT_RADIUS, 6);
+				_log.warning("CompanionTeleportEmergencyPlacementRadius must be between CompanionTeleportPlacementRadius and 20. Using "
+						+ fallbackRadius + ".");
+				COMPANION_TELEPORT_EMERGENCY_PLACEMENT_RADIUS = fallbackRadius;
+			}
+			if ((COMPANION_TELEPORT_MAX_PATH_DETOUR < 0)
+					|| (COMPANION_TELEPORT_MAX_PATH_DETOUR > 20)) {
+				_log.warning("CompanionTeleportMaxPathDetour must be between 0 and 20. Using default value 4.");
+				COMPANION_TELEPORT_MAX_PATH_DETOUR = 4;
+			}
+			if ((COMPANION_TELEPORT_MAX_PATH_LENGTH < 1)
+					|| (COMPANION_TELEPORT_MAX_PATH_LENGTH > 40)) {
+				_log.warning("CompanionTeleportMaxPathLength must be between 1 and 40. Using default value 8.");
+				COMPANION_TELEPORT_MAX_PATH_LENGTH = 8;
 			}
 			CHANGE_TITLE_BY_ONESELF = Boolean.parseBoolean(altSettings.getProperty("ChangeTitleByOneself", "false"));
 			MAX_CLAN_MEMBER = Integer.parseInt(altSettings.getProperty("MaxClanMember", "0"));

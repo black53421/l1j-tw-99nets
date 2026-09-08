@@ -972,7 +972,17 @@ public class L1NpcInstance extends L1Character {
 			return false;
 		}
 
-		setDirectionMove(dir);
+		if (!tryDirectionMove(dir)) {
+			blockedCount = incrementFollowBlockedCount();
+			if (canRecoverCompanion(masterDistance, blockedCount)
+					&& tryCompanionReposition(master)) {
+				setSleepTime(calcSleepTime(getPassispeed(), MOVE_SPEED));
+				resetFollowBlockedCount();
+				return true;
+			}
+			return false;
+		}
+
 		setSleepTime(calcSleepTime(getPassispeed(), MOVE_SPEED));
 		resetFollowBlockedCount();
 		return true;
@@ -1651,12 +1661,16 @@ public class L1NpcInstance extends L1Character {
 
 	// 指定された方向に移動させる
 	public void setDirectionMove(int dir) {
+		tryDirectionMove(dir);
+	}
+
+	protected boolean tryDirectionMove(int dir) {
 		if (dir < 0) {
-			return;
+			return false;
 		}
 
 		if (!L1MovementCoordinator.tryMoveNpc(this, dir)) {
-			return;
+			return false;
 		}
 
 		broadcastPacket(new S_MoveCharPacket(this));
@@ -1680,6 +1694,7 @@ public class L1NpcInstance extends L1Character {
 				teleport(getHomeX(), getHomeY(), getHeading());
 			}
 		}
+		return true;
 	}
 
 	public int moveDirection(int x, int y) { // 目標点Ｘ 目標点Ｙ

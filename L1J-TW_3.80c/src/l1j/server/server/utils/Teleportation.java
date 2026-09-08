@@ -21,7 +21,9 @@ import java.util.HashSet;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
+import l1j.server.Config;
 import l1j.server.server.model.L1Clan;
+import l1j.server.server.model.L1CompanionTeleportPlacement;
 import l1j.server.server.model.L1DragonSlayer;
 import l1j.server.server.model.L1Location;
 import l1j.server.server.model.L1TileOccupancy;
@@ -121,16 +123,49 @@ public class Teleportation {
 
 		if (!pc.isGhost()) {
 			if (pc.getMap().isTakePets()) {
+				final boolean petMatchMap = isPetMatchMap(pc.getMapId());
+				final L1CompanionTeleportPlacement companionPlacement;
+				if (Config.COMPANION_TELEPORT_REACHABLE_PLACEMENT_ENABLED && !petMatchMap) {
+					companionPlacement = new L1CompanionTeleportPlacement(pc,
+							Config.COMPANION_TELEPORT_EMERGENCY_PLACEMENT_RADIUS,
+							Config.COMPANION_TELEPORT_MAX_PATH_DETOUR,
+							Config.COMPANION_TELEPORT_MAX_PATH_LENGTH);
+				}
+				else {
+					companionPlacement = null;
+				}
+
 				// ペットとサモンも一緒に移動させる。
 				for (final L1NpcInstance petNpc : pc.getPetList().values()) {
-					// テレポート先の設定
-					final L1Location loc = pc.getLocation().randomLocation(3, false);
-					int nx = loc.getX();
-					int ny = loc.getY();
-					if ((pc.getMapId() == 5125) || (pc.getMapId() == 5131) || (pc.getMapId() == 5132) || (pc.getMapId() == 5133)
-							|| (pc.getMapId() == 5134)) { // ペットマッチ会場
+					int nx;
+					int ny;
+					if (petMatchMap) { // ペットマッチ会場
 						nx = 32799 + Random.nextInt(5) - 3;
 						ny = 32864 + Random.nextInt(5) - 3;
+					}
+					else if (companionPlacement != null) {
+						L1Location loc = companionPlacement.findFreeLocation(
+								Config.COMPANION_TELEPORT_PLACEMENT_RADIUS);
+						if ((loc == null) && Config.COMPANION_TELEPORT_OVERLAP_FALLBACK_ENABLED) {
+							loc = companionPlacement.findOverlapLocation();
+						}
+						if (loc != null) {
+							nx = loc.getX();
+							ny = loc.getY();
+						}
+						else {
+							nx = pc.getX();
+							ny = pc.getY();
+							_log.warning("[CompanionTeleport] No safe companion tile for npcId="
+									+ petNpc.getId() + " owner=" + pc.getName() + " mapId="
+									+ pc.getMapId() + " x=" + pc.getX() + " y=" + pc.getY()
+									+ "; using owner tile as the safety fallback.");
+						}
+					}
+					else {
+						final L1Location loc = pc.getLocation().randomLocation(3, false);
+						nx = loc.getX();
+						ny = loc.getY();
 					}
 					teleport(petNpc, nx, ny, mapId, head);
 					if (petNpc instanceof L1SummonInstance) { // サモンモンスター
@@ -211,6 +246,11 @@ public class Teleportation {
 		} finally {
 			pc.setTeleport(false);
 		}
+	}
+
+	private static boolean isPetMatchMap(int mapId) {
+		return (mapId == 5125) || (mapId == 5131) || (mapId == 5132)
+				|| (mapId == 5133) || (mapId == 5134);
 	}
 
 	private static void teleport(L1NpcInstance npc, int x, int y, short map, int head) {
