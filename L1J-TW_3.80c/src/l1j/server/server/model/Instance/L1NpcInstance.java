@@ -44,6 +44,7 @@ import l1j.server.server.datatables.NpcTable;
 import l1j.server.server.datatables.SprTable;
 import l1j.server.server.model.L1Attack;
 import l1j.server.server.model.L1Character;
+import l1j.server.server.model.L1CompanionTrail;
 import l1j.server.server.model.L1GroundInventory;
 import l1j.server.server.model.L1HateList;
 import l1j.server.server.model.L1Inventory;
@@ -834,6 +835,20 @@ public class L1NpcInstance extends L1Character {
 
 	private long _lastFollowRecoveryTime = 0L;
 
+	private boolean _companionExtendedSearchActive = false;
+
+	private int _companionExtendedSearchTargetId = 0;
+
+	private int _companionExtendedSearchFailures = 0;
+
+	private long _lastCompanionExtendedSearchEndTime = 0L;
+
+	private boolean _companionBreadcrumbActive = false;
+
+	private int _companionBreadcrumbMasterId = 0;
+
+	private long _companionBreadcrumbSequence = 0L;
+
 	public int getFollowSlot() {
 		return _followSlot;
 	}
@@ -856,6 +871,168 @@ public class L1NpcInstance extends L1Character {
 
 	public void resetFollowRecoveryTime() {
 		_lastFollowRecoveryTime = 0L;
+	}
+
+	private void resetCompanionExtendedSearch(boolean startCooldown) {
+		_companionExtendedSearchActive = false;
+		_companionExtendedSearchTargetId = 0;
+		_companionExtendedSearchFailures = 0;
+		if (startCooldown) {
+			_lastCompanionExtendedSearchEndTime = System.currentTimeMillis();
+		}
+	}
+
+	private boolean isCompanionExtendedSearchActiveFor(L1Character target) {
+		return _companionExtendedSearchActive && (target != null)
+				&& (_companionExtendedSearchTargetId == target.getId());
+	}
+
+	private boolean canStartCompanionExtendedSearch(int blockedCount) {
+		if (!Config.COMPANION_FOLLOW_EXTENDED_SEARCH_ENABLED
+				|| (blockedCount < Config.COMPANION_FOLLOW_EXTENDED_SEARCH_BLOCKED_RETRY_COUNT)) {
+			return false;
+		}
+
+		long now = System.currentTimeMillis();
+		return (Config.COMPANION_FOLLOW_EXTENDED_SEARCH_COOLDOWN_MS == 0)
+				|| ((now - _lastCompanionExtendedSearchEndTime)
+						>= Config.COMPANION_FOLLOW_EXTENDED_SEARCH_COOLDOWN_MS);
+	}
+
+	private void startCompanionExtendedSearch(L1Character target) {
+		_companionExtendedSearchActive = true;
+		_companionExtendedSearchTargetId = target.getId();
+		_companionExtendedSearchFailures = 0;
+	}
+
+	private int findCompanionExtendedSearchDirection(int targetX, int targetY) {
+		int dir = _serchCompanionCource(targetX, targetY,
+				Config.COMPANION_FOLLOW_EXTENDED_SEARCH_RANGE);
+		if (dir == -1) {
+			_companionExtendedSearchFailures++;
+			if (_companionExtendedSearchFailures
+					>= Config.COMPANION_FOLLOW_EXTENDED_SEARCH_MAX_FAILURES) {
+				resetCompanionExtendedSearch(true);
+			}
+			return -1;
+		}
+
+		_companionExtendedSearchFailures = 0;
+		return validateCompanionSearchedDirection(dir);
+	}
+
+	private void resetCompanionBreadcrumb() {
+		_companionBreadcrumbActive = false;
+		_companionBreadcrumbMasterId = 0;
+		_companionBreadcrumbSequence = 0L;
+	}
+
+	private void advanceCompanionBreadcrumbFromCurrentPosition(
+			List<L1CompanionTrail.Breadcrumb> trail) {
+		for (int i = trail.size() - 1; i >= 0; i--) {
+			L1CompanionTrail.Breadcrumb breadcrumb = trail.get(i);
+			if (breadcrumb.getSequence() <= _companionBreadcrumbSequence) {
+				break;
+			}
+			if (isCompanionBreadcrumbReached(breadcrumb)) {
+				_companionBreadcrumbSequence = breadcrumb.getSequence();
+				return;
+			}
+		}
+	}
+
+	private L1CompanionTrail.Breadcrumb selectCompanionBreadcrumb(
+			L1Character master, int masterDistance) {
+		if (!Config.COMPANION_FOLLOW_BREADCRUMB_ENABLED
+				|| Config.COMPANION_FOLLOW_QUEUE_ENABLED
+				|| !(master instanceof L1PcInstance)) {
+			resetCompanionBreadcrumb();
+			return null;
+		}
+
+		if (!_companionBreadcrumbActive
+				&& (masterDistance < Config.COMPANION_FOLLOW_BREADCRUMB_TRIGGER_DISTANCE)) {
+			return null;
+		}
+
+		List<L1CompanionTrail.Breadcrumb> trail = ((L1PcInstance) master)
+				.getCompanionFollowTrailSnapshot();
+		if (trail.size() < 2) {
+			resetCompanionBreadcrumb();
+			return null;
+		}
+
+		if (_companionBreadcrumbMasterId != master.getId()) {
+			_companionBreadcrumbActive = false;
+			_companionBreadcrumbMasterId = master.getId();
+			_companionBreadcrumbSequence = 0L;
+		}
+
+		L1CompanionTrail.Breadcrumb oldest = trail.get(0);
+		L1CompanionTrail.Breadcrumb latest = trail.get(trail.size() - 1);
+		advanceCompanionBreadcrumbFromCurrentPosition(trail);
+		if (!_companionBreadcrumbActive) {
+			_companionBreadcrumbActive = true;
+		}
+
+		if ((_companionBreadcrumbSequence == 0L)
+				|| (_companionBreadcrumbSequence < (oldest.getSequence() - 1L))) {
+			_companionBreadcrumbSequence = oldest.getSequence() - 1L;
+		}
+
+		for (int guard = 0; guard < trail.size(); guard++) {
+			int nextIndex = findNextCompanionBreadcrumbIndex(trail,
+					_companionBreadcrumbSequence);
+			if (nextIndex < 0) {
+				_companionBreadcrumbActive = false;
+				_companionBreadcrumbSequence = latest.getSequence();
+				return null;
+			}
+
+			int targetIndex = Math.min(trail.size() - 1, nextIndex
+					+ Config.COMPANION_FOLLOW_BREADCRUMB_LOOK_AHEAD_STEPS - 1);
+			L1CompanionTrail.Breadcrumb target = trail.get(targetIndex);
+			if (!isCompanionBreadcrumbReached(target)) {
+				return target;
+			}
+			_companionBreadcrumbSequence = target.getSequence();
+		}
+
+		return null;
+	}
+
+	private int findNextCompanionBreadcrumbIndex(
+			List<L1CompanionTrail.Breadcrumb> trail, long sequence) {
+		for (int i = 0; i < trail.size(); i++) {
+			if (trail.get(i).getSequence() > sequence) {
+				return i;
+			}
+		}
+		return -1;
+	}
+
+	private boolean isCompanionBreadcrumbReached(
+			L1CompanionTrail.Breadcrumb breadcrumb) {
+		int distance = Math.max(Math.abs(getX() - breadcrumb.getX()),
+				Math.abs(getY() - breadcrumb.getY()));
+		if (distance == 0) {
+			return true;
+		}
+		if ((distance > Config.COMPANION_FOLLOW_BREADCRUMB_ADVANCE_DISTANCE)
+				|| (distance != 1)) {
+			return false;
+		}
+
+		int dir = targetDirection(breadcrumb.getX(), breadcrumb.getY());
+		return (dir >= 0) && getMap().isTerrainPassable(getX(), getY(), dir);
+	}
+
+	private void advanceCompanionBreadcrumbIfReached(
+			L1CompanionTrail.Breadcrumb breadcrumb) {
+		if ((breadcrumb != null) && isCompanionBreadcrumbReached(breadcrumb)) {
+			_companionBreadcrumbSequence = Math.max(_companionBreadcrumbSequence,
+					breadcrumb.getSequence());
+		}
 	}
 
 	private boolean isFollowBlockedRetryReached(int blockedCount) {
@@ -929,6 +1106,8 @@ public class L1NpcInstance extends L1Character {
 	protected boolean followCompanionMaster(L1Character master) {
 		if ((master == null) || (master.getMapId() != getMapId())) {
 			resetFollowBlockedCount();
+			resetCompanionExtendedSearch(false);
+			resetCompanionBreadcrumb();
 			return false;
 		}
 
@@ -947,18 +1126,68 @@ public class L1NpcInstance extends L1Character {
 			}
 		}
 
+		if (_companionExtendedSearchActive
+				&& !isCompanionExtendedSearchActiveFor(followTarget)) {
+			resetCompanionExtendedSearch(false);
+		}
+		if (followTarget != master) {
+			resetCompanionBreadcrumb();
+		}
+
 		int targetDistance = getLocation().getTileLineDistance(followTarget.getLocation());
 		if (targetDistance <= desiredDistance) {
 			resetFollowBlockedCount();
+			resetCompanionExtendedSearch(false);
+			if (followTarget == master) {
+				resetCompanionBreadcrumb();
+			}
 			return false;
 		}
 
-		int dir = moveDirection(followTarget.getX(), followTarget.getY());
+		L1Character movementTarget = followTarget;
+		L1CompanionTrail.Breadcrumb breadcrumbTarget = null;
+		int movementTargetX = movementTarget.getX();
+		int movementTargetY = movementTarget.getY();
+		if (movementTarget == master) {
+			breadcrumbTarget = selectCompanionBreadcrumb(master, masterDistance);
+			if (breadcrumbTarget != null) {
+				movementTargetX = breadcrumbTarget.getX();
+				movementTargetY = breadcrumbTarget.getY();
+			}
+		}
+
+		int dir = -1;
 		int blockedCount = 0;
-		if (dir == -1) {
-			blockedCount = incrementFollowBlockedCount();
-			if ((followTarget != master) && isFollowBlockedRetryReached(blockedCount)) {
-				dir = moveDirection(master.getX(), master.getY());
+		boolean exitExtendedSearchAfterMove = false;
+
+		if (isCompanionExtendedSearchActiveFor(movementTarget)) {
+			int normalCourseDir = _serchCompanionCource(
+					movementTargetX, movementTargetY, courceRange);
+			if (normalCourseDir != -1) {
+				dir = validateCompanionSearchedDirection(normalCourseDir);
+				exitExtendedSearchAfterMove = (dir != -1);
+			} else {
+				dir = findCompanionExtendedSearchDirection(movementTargetX, movementTargetY);
+			}
+			if (dir == -1) {
+				blockedCount = incrementFollowBlockedCount();
+			}
+		} else {
+			dir = moveCompanionDirection(movementTargetX, movementTargetY);
+			if (dir == -1) {
+				blockedCount = incrementFollowBlockedCount();
+				if ((movementTarget != master) && isFollowBlockedRetryReached(blockedCount)) {
+					movementTarget = master;
+					breadcrumbTarget = null;
+					movementTargetX = master.getX();
+					movementTargetY = master.getY();
+					dir = moveCompanionDirection(movementTargetX, movementTargetY);
+				}
+			}
+
+			if ((dir == -1) && canStartCompanionExtendedSearch(blockedCount)) {
+				startCompanionExtendedSearch(movementTarget);
+				dir = findCompanionExtendedSearchDirection(movementTargetX, movementTargetY);
 			}
 		}
 
@@ -967,22 +1196,30 @@ public class L1NpcInstance extends L1Character {
 					&& tryCompanionReposition(master)) {
 				setSleepTime(calcSleepTime(getPassispeed(), MOVE_SPEED));
 				resetFollowBlockedCount();
+				resetCompanionExtendedSearch(false);
+				resetCompanionBreadcrumb();
 				return true;
 			}
 			return false;
 		}
 
-		if (!tryDirectionMove(dir)) {
+		if (!tryCompanionDirectionMove(dir)) {
 			blockedCount = incrementFollowBlockedCount();
 			if (canRecoverCompanion(masterDistance, blockedCount)
 					&& tryCompanionReposition(master)) {
 				setSleepTime(calcSleepTime(getPassispeed(), MOVE_SPEED));
 				resetFollowBlockedCount();
+				resetCompanionExtendedSearch(false);
+				resetCompanionBreadcrumb();
 				return true;
 			}
 			return false;
 		}
 
+		advanceCompanionBreadcrumbIfReached(breadcrumbTarget);
+		if (exitExtendedSearchAfterMove) {
+			resetCompanionExtendedSearch(false);
+		}
 		setSleepTime(calcSleepTime(getPassispeed(), MOVE_SPEED));
 		resetFollowBlockedCount();
 		return true;
@@ -1665,11 +1902,22 @@ public class L1NpcInstance extends L1Character {
 	}
 
 	protected boolean tryDirectionMove(int dir) {
+		return tryDirectionMoveInternal(dir, false);
+	}
+
+	private boolean tryCompanionDirectionMove(int dir) {
+		return tryDirectionMoveInternal(dir, true);
+	}
+
+	private boolean tryDirectionMoveInternal(int dir, boolean companionFollow) {
 		if (dir < 0) {
 			return false;
 		}
 
-		if (!L1MovementCoordinator.tryMoveNpc(this, dir)) {
+		boolean moved = companionFollow
+				? L1MovementCoordinator.tryMoveFollowingCompanion(this, dir)
+				: L1MovementCoordinator.tryMoveNpc(this, dir);
+		if (!moved) {
 			return false;
 		}
 
@@ -1702,8 +1950,18 @@ public class L1NpcInstance extends L1Character {
 				getLocation().getLineDistance(new Point(x, y)));
 	}
 
+	private int moveCompanionDirection(int x, int y) {
+		return moveDirectionInternal(x, y,
+				getLocation().getLineDistance(new Point(x, y)), true);
+	}
+
 	// 目標までの距離に応じて最適と思われるルーチンで進む方向を返す
 	public int moveDirection(int x, int y, double d) { // 目標点Ｘ 目標点Ｙ 目標までの距離
+		return moveDirectionInternal(x, y, d, false);
+	}
+
+	private int moveDirectionInternal(int x, int y, double d,
+			boolean companionFollow) {
 		_movementBlockedByCharacter = false;
 		_blockingAttackTarget = null;
 		int dir = 0;
@@ -1713,23 +1971,83 @@ public class L1NpcInstance extends L1Character {
 		} else if (d > 30D) { // 距離が激しく遠い場合は追跡終了
 			resetBlockerRetryState();
 			return -1;
-		} else if (d > courceRange) { // 距離が遠い場合は単純計算
+		} else if (d > courceRange) { // Use simple steering for distant targets.
 			dir = targetDirection(x, y);
-			dir = resolveBlockedDirection(dir);
+			dir = companionFollow ? resolveCompanionBlockedDirection(dir)
+					: resolveBlockedDirection(dir);
 		} else { // 目標までの最短経路を探索
-			dir = _serchCource(x, y);
+			dir = companionFollow ? _serchCompanionCource(x, y, courceRange)
+					: _serchCource(x, y);
 			if (dir == -1) { // 目標までの経路がなっかた場合はとりあえず近づいておく
 				dir = targetDirection(x, y);
-				dir = resolveBlockedDirection(dir);
+				dir = companionFollow ? resolveCompanionBlockedDirection(dir)
+						: resolveBlockedDirection(dir);
 			} else {
-				// Preserve the route selected by _serchCource(). The normal
+				// Preserve the route selected by the course search. The normal
 				// blocker resolver may steer left or right and can therefore
 				// destroy a valid path around walls. Only revalidate the exact
 				// searched direction before committing the move.
-				dir = validateSearchedDirection(dir);
+				dir = companionFollow ? validateCompanionSearchedDirection(dir)
+						: validateSearchedDirection(dir);
 			}
 		}
 		return dir;
+	}
+
+	private boolean isCompanionStepPassable(int x, int y, int dir) {
+		return getMap().isPassable(x, y, dir)
+				|| L1MovementCoordinator.isCompanionNarrowPassStep(
+						this, x, y, dir);
+	}
+
+	private int validateCompanionSearchedDirection(int dir) {
+		if (!Config.COMPANION_NARROW_PASS_ENABLED) {
+			return validateSearchedDirection(dir);
+		}
+		if (dir < 0) {
+			return -1;
+		}
+		if (isCompanionStepPassable(getX(), getY(), dir)) {
+			resetBlockerRetryState();
+			return dir;
+		}
+		return validateSearchedDirection(dir);
+	}
+
+	private int resolveCompanionBlockedDirection(int dir) {
+		if (!Config.COMPANION_NARROW_PASS_ENABLED) {
+			return resolveBlockedDirection(dir);
+		}
+		if ((dir < 0) || (dir > 7)) {
+			return -1;
+		}
+
+		if (isCompanionStepPassable(getX(), getY(), dir)) {
+			resetBlockerRetryState();
+			return dir;
+		}
+
+		if (shouldHoldForSameOwnerCompanion(dir)) {
+			return -1;
+		}
+
+		int[] candidates = { (dir + 7) % 8, (dir + 1) % 8 };
+		for (int candidate : candidates) {
+			if (isCompanionStepPassable(getX(), getY(), candidate)) {
+				resetBlockerRetryState();
+				return candidate;
+			}
+		}
+		return resolveBlockedDirection(dir);
+	}
+
+	private boolean shouldHoldForSameOwnerCompanion(int dir) {
+		int retryCount = Config.COMPANION_NARROW_PASS_BLOCKER_HOLD_RETRY_COUNT;
+		if ((retryCount <= 0) || (getFollowBlockedCount() >= retryCount)) {
+			return false;
+		}
+		return L1MovementCoordinator.isCompanionSameOwnerBlockerStep(
+				this, getX(), getY(), dir);
 	}
 
 	private int validateSearchedDirection(int dir) {
@@ -1965,8 +2283,30 @@ public class L1NpcInstance extends L1Character {
 	// ※目標を中心とした探索範囲のマップで探索
 	private int _serchCource(int x, int y) // 目標点Ｘ 目標点Ｙ
 	{
+		return _serchCource(x, y, courceRange, false);
+	}
+
+	private int _serchCource(int x, int y, int searchRange)
+	{
+		return _serchCource(x, y, searchRange, false);
+	}
+
+	private int _serchCompanionCource(int x, int y, int searchRange)
+	{
+		return _serchCource(x, y, searchRange,
+				Config.COMPANION_NARROW_PASS_ENABLED);
+	}
+
+	private int _serchCource(int x, int y, int searchRange,
+			boolean companionNarrowPass)
+	{
+		if ((Math.abs(getX() - x) > searchRange)
+				|| (Math.abs(getY() - y) > searchRange)) {
+			return -1;
+		}
+
 		int i;
-		int locCenter = courceRange + 1;
+		int locCenter = searchRange + 1;
 		int diff_x = x - locCenter; // Ｘの実際のロケーションとの差
 		int diff_y = y - locCenter; // Ｙの実際のロケーションとの差
 		int[] locBace = { getX() - diff_x, getY() - diff_y, 0, 0 }; // Ｘ Ｙ
@@ -1979,8 +2319,8 @@ public class L1NpcInstance extends L1Character {
 		LinkedList<int[]> queueSerch = new LinkedList<int[]>();
 
 		// 探索用マップの設定
-		for (int j = courceRange * 2 + 1; j > 0; j--) {
-			for (i = courceRange - Math.abs(locCenter - j); i >= 0; i--) {
+		for (int j = searchRange * 2 + 1; j > 0; j--) {
+			for (i = searchRange - Math.abs(locCenter - j); i >= 0; i--) {
 				serchMap[j][locCenter + i] = true;
 				serchMap[j][locCenter - i] = true;
 			}
@@ -1990,15 +2330,19 @@ public class L1NpcInstance extends L1Character {
 		int[] firstCource = { 2, 4, 6, 0, 1, 3, 5, 7 };
 		for (i = 0; i < 8; i++) {
 			System.arraycopy(locBace, 0, locNext, 0, 4);
-			_moveLocation(locNext, firstCource[i]);
+			int searchDir = firstCource[i];
+			_moveLocation(locNext, searchDir);
 			if ((locNext[0] - locCenter == 0) && (locNext[1] - locCenter == 0)) {
-				// 最短経路が見つかった場合:隣
-				return firstCource[i];
+				if (isCourseTargetStepPassable(locBace[0] + diff_x,
+						locBace[1] + diff_y, searchDir)) {
+					return searchDir;
+				}
+				continue;
 			}
 			if (serchMap[locNext[0]][locNext[1]]) {
-				int searchDir = firstCource[i];
-				boolean found = getMap().isPassable(
-						locBace[0] + diff_x, locBace[1] + diff_y, searchDir);
+				boolean found = isCourseStepPassable(
+						locBace[0] + diff_x, locBace[1] + diff_y, searchDir,
+						companionNarrowPass);
 				if (found)// 移動経路があった場合
 				{
 					locCopy = new int[4];
@@ -2018,15 +2362,20 @@ public class L1NpcInstance extends L1Character {
 			_getFront(dirFront, locBace[2]);
 			for (i = 4; i >= 0; i--) {
 				System.arraycopy(locBace, 0, locNext, 0, 4);
-				_moveLocation(locNext, dirFront[i]);
+				int searchDir = dirFront[i];
+				_moveLocation(locNext, searchDir);
 				if ((locNext[0] - locCenter == 0)
 						&& (locNext[1] - locCenter == 0)) {
-					return locNext[3];
+					if (isCourseTargetStepPassable(locBace[0] + diff_x,
+							locBace[1] + diff_y, searchDir)) {
+						return locNext[3];
+					}
+					continue;
 				}
 				if (serchMap[locNext[0]][locNext[1]]) {
-					int searchDir = dirFront[i];
-					boolean found = getMap().isPassable(
-							locBace[0] + diff_x, locBace[1] + diff_y, searchDir);
+					boolean found = isCourseStepPassable(
+							locBace[0] + diff_x, locBace[1] + diff_y, searchDir,
+							companionNarrowPass);
 					if (found) // 移動経路があった場合
 					{
 						locCopy = new int[4];
@@ -2040,6 +2389,20 @@ public class L1NpcInstance extends L1Character {
 			locBace = null;
 		}
 		return -1; // 目標までの経路がない場合
+	}
+
+	private boolean isCourseTargetStepPassable(int x, int y, int dir) {
+		return getMap().isTerrainPassable(x, y, dir);
+	}
+
+	private boolean isCourseStepPassable(int x, int y, int dir,
+			boolean companionNarrowPass) {
+		if (getMap().isPassable(x, y, dir)) {
+			return true;
+		}
+		return companionNarrowPass
+				&& L1MovementCoordinator.isCompanionNarrowPassStep(
+						this, x, y, dir);
 	}
 
 	private void _moveLocation(int[] ary, int d) {

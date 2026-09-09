@@ -11,6 +11,8 @@ import l1j.server.server.model.Instance.L1DoorInstance;
 import l1j.server.server.model.Instance.L1EffectInstance;
 import l1j.server.server.model.Instance.L1NpcInstance;
 import l1j.server.server.model.Instance.L1PcInstance;
+import l1j.server.server.model.Instance.L1PetInstance;
+import l1j.server.server.model.Instance.L1SummonInstance;
 
 /**
  * Preserves dynamic tile blocking while multiple physical characters
@@ -90,6 +92,69 @@ public final class L1TileOccupancy {
 
 			occupant.getMap().setPassable(x, y, true);
 		}
+	}
+
+	/**
+	 * Returns true only when the target tile is occupied by one or more live
+	 * pets/summons owned by the same master as the moving companion and no
+	 * other physical character is present.
+	 */
+	static boolean isOccupiedOnlyBySameOwnerCompanions(
+			L1NpcInstance mover, int x, int y) {
+		if (!isCompanion(mover) || (mover.getMaster() == null)) {
+			return false;
+		}
+
+		L1Character master = mover.getMaster();
+		boolean hasCandidate = false;
+		Object[] companions = master.getPetList().values().toArray();
+		for (Object object : companions) {
+			if (!(object instanceof L1NpcInstance)) {
+				continue;
+			}
+			L1NpcInstance companion = (L1NpcInstance) object;
+			if ((companion != mover) && !companion.isDead()
+					&& (companion.getMapId() == mover.getMapId())
+					&& (companion.getX() == x) && (companion.getY() == y)) {
+				hasCandidate = true;
+				break;
+			}
+		}
+		if (!hasCandidate) {
+			return false;
+		}
+
+		boolean foundSameOwnerCompanion = false;
+		for (L1Object object : L1World.getInstance().getObject()) {
+			if ((object == mover) || !(object instanceof L1Character)
+					|| (object.getMapId() != mover.getMapId())
+					|| (object.getX() != x) || (object.getY() != y)) {
+				continue;
+			}
+
+			L1Character character = (L1Character) object;
+			if (character.isDead() || !isPhysicalOccupant(character)) {
+				continue;
+			}
+
+			if (!(character instanceof L1NpcInstance)
+					|| !isCompanion((L1NpcInstance) character)) {
+				return false;
+			}
+
+			L1Character otherMaster = ((L1NpcInstance) character).getMaster();
+			if ((otherMaster == null) || (otherMaster.getId() != master.getId())) {
+				return false;
+			}
+			foundSameOwnerCompanion = true;
+		}
+
+		return foundSameOwnerCompanion;
+	}
+
+	private static boolean isCompanion(L1NpcInstance npc) {
+		return (npc instanceof L1PetInstance)
+				|| (npc instanceof L1SummonInstance);
 	}
 
 	private static Set<Integer> findOtherPhysicalOccupants(

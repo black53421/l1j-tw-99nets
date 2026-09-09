@@ -227,6 +227,32 @@ public final class Config {
 
 	public static int COMPANION_FOLLOW_RECOVERY_COOLDOWN_MS;
 
+	public static boolean COMPANION_FOLLOW_EXTENDED_SEARCH_ENABLED;
+
+	public static int COMPANION_FOLLOW_EXTENDED_SEARCH_BLOCKED_RETRY_COUNT;
+
+	public static int COMPANION_FOLLOW_EXTENDED_SEARCH_RANGE;
+
+	public static int COMPANION_FOLLOW_EXTENDED_SEARCH_MAX_FAILURES;
+
+	public static int COMPANION_FOLLOW_EXTENDED_SEARCH_COOLDOWN_MS;
+
+	public static boolean COMPANION_FOLLOW_BREADCRUMB_ENABLED;
+
+	public static int COMPANION_FOLLOW_BREADCRUMB_TRIGGER_DISTANCE;
+
+	public static int COMPANION_FOLLOW_BREADCRUMB_HISTORY_SIZE;
+
+	public static int COMPANION_FOLLOW_BREADCRUMB_LOOK_AHEAD_STEPS;
+
+	public static int COMPANION_FOLLOW_BREADCRUMB_ADVANCE_DISTANCE;
+
+	public static boolean COMPANION_NARROW_PASS_ENABLED;
+
+	public static int COMPANION_NARROW_PASS_LOOK_AHEAD_STEPS;
+
+	public static int COMPANION_NARROW_PASS_BLOCKER_HOLD_RETRY_COUNT;
+
 	public static boolean COMPANION_TELEPORT_REACHABLE_PLACEMENT_ENABLED;
 
 	public static boolean COMPANION_TELEPORT_OVERLAP_FALLBACK_ENABLED;
@@ -725,6 +751,79 @@ public final class Config {
 			if (COMPANION_FOLLOW_RECOVERY_COOLDOWN_MS < 0) {
 				_log.warning("CompanionFollowRecoveryCooldownMs must be 0 or greater. Using default value 1000.");
 				COMPANION_FOLLOW_RECOVERY_COOLDOWN_MS = 1000;
+			}
+			COMPANION_FOLLOW_EXTENDED_SEARCH_ENABLED = Boolean.parseBoolean(
+					altSettings.getProperty("CompanionFollowExtendedSearchEnabled", "false"));
+			COMPANION_FOLLOW_EXTENDED_SEARCH_BLOCKED_RETRY_COUNT = Integer.parseInt(
+					altSettings.getProperty("CompanionFollowExtendedSearchBlockedRetryCount", "3"));
+			COMPANION_FOLLOW_EXTENDED_SEARCH_RANGE = Integer.parseInt(
+					altSettings.getProperty("CompanionFollowExtendedSearchRange", "30"));
+			COMPANION_FOLLOW_EXTENDED_SEARCH_MAX_FAILURES = Integer.parseInt(
+					altSettings.getProperty("CompanionFollowExtendedSearchMaxFailures", "10"));
+			COMPANION_FOLLOW_EXTENDED_SEARCH_COOLDOWN_MS = Integer.parseInt(
+					altSettings.getProperty("CompanionFollowExtendedSearchCooldownMs", "3000"));
+			if (COMPANION_FOLLOW_EXTENDED_SEARCH_BLOCKED_RETRY_COUNT < 1) {
+				_log.warning("CompanionFollowExtendedSearchBlockedRetryCount must be 1 or greater. Using default value 3.");
+				COMPANION_FOLLOW_EXTENDED_SEARCH_BLOCKED_RETRY_COUNT = 3;
+			}
+			if ((COMPANION_FOLLOW_EXTENDED_SEARCH_RANGE <= 15)
+					|| (COMPANION_FOLLOW_EXTENDED_SEARCH_RANGE > 30)) {
+				_log.warning("CompanionFollowExtendedSearchRange must be between 16 and 30. Using default value 30.");
+				COMPANION_FOLLOW_EXTENDED_SEARCH_RANGE = 30;
+			}
+			if (COMPANION_FOLLOW_EXTENDED_SEARCH_MAX_FAILURES < 1) {
+				_log.warning("CompanionFollowExtendedSearchMaxFailures must be 1 or greater. Using default value 10.");
+				COMPANION_FOLLOW_EXTENDED_SEARCH_MAX_FAILURES = 10;
+			}
+			if (COMPANION_FOLLOW_EXTENDED_SEARCH_COOLDOWN_MS < 0) {
+				_log.warning("CompanionFollowExtendedSearchCooldownMs must be 0 or greater. Using default value 3000.");
+				COMPANION_FOLLOW_EXTENDED_SEARCH_COOLDOWN_MS = 3000;
+			}
+			COMPANION_FOLLOW_BREADCRUMB_ENABLED = Boolean.parseBoolean(
+					altSettings.getProperty("CompanionFollowBreadcrumbEnabled", "false"));
+			COMPANION_FOLLOW_BREADCRUMB_TRIGGER_DISTANCE = Integer.parseInt(
+					altSettings.getProperty("CompanionFollowBreadcrumbTriggerDistance", "5"));
+			COMPANION_FOLLOW_BREADCRUMB_HISTORY_SIZE = Integer.parseInt(
+					altSettings.getProperty("CompanionFollowBreadcrumbHistorySize", "64"));
+			COMPANION_FOLLOW_BREADCRUMB_LOOK_AHEAD_STEPS = Integer.parseInt(
+					altSettings.getProperty("CompanionFollowBreadcrumbLookAheadSteps", "4"));
+			COMPANION_FOLLOW_BREADCRUMB_ADVANCE_DISTANCE = Integer.parseInt(
+					altSettings.getProperty("CompanionFollowBreadcrumbAdvanceDistance", "1"));
+			if (COMPANION_FOLLOW_BREADCRUMB_TRIGGER_DISTANCE <= COMPANION_FOLLOW_MASTER_DISTANCE) {
+				_log.warning("CompanionFollowBreadcrumbTriggerDistance must be greater than CompanionFollowMasterDistance. Using default value 5.");
+				COMPANION_FOLLOW_BREADCRUMB_TRIGGER_DISTANCE = 5;
+			}
+			if ((COMPANION_FOLLOW_BREADCRUMB_HISTORY_SIZE < 8)
+					|| (COMPANION_FOLLOW_BREADCRUMB_HISTORY_SIZE > 256)) {
+				_log.warning("CompanionFollowBreadcrumbHistorySize must be between 8 and 256. Using default value 64.");
+				COMPANION_FOLLOW_BREADCRUMB_HISTORY_SIZE = 64;
+			}
+			if ((COMPANION_FOLLOW_BREADCRUMB_LOOK_AHEAD_STEPS < 1)
+					|| (COMPANION_FOLLOW_BREADCRUMB_LOOK_AHEAD_STEPS > 16)
+					|| (COMPANION_FOLLOW_BREADCRUMB_LOOK_AHEAD_STEPS >= COMPANION_FOLLOW_BREADCRUMB_HISTORY_SIZE)) {
+				_log.warning("CompanionFollowBreadcrumbLookAheadSteps must be between 1 and 16 and smaller than the history size. Using default value 4.");
+				COMPANION_FOLLOW_BREADCRUMB_LOOK_AHEAD_STEPS = 4;
+			}
+			if ((COMPANION_FOLLOW_BREADCRUMB_ADVANCE_DISTANCE < 0)
+					|| (COMPANION_FOLLOW_BREADCRUMB_ADVANCE_DISTANCE > 1)) {
+				_log.warning("CompanionFollowBreadcrumbAdvanceDistance must be 0 or 1. Using default value 1.");
+				COMPANION_FOLLOW_BREADCRUMB_ADVANCE_DISTANCE = 1;
+			}
+			COMPANION_NARROW_PASS_ENABLED = Boolean.parseBoolean(
+					altSettings.getProperty("CompanionNarrowPassEnabled", "false"));
+			COMPANION_NARROW_PASS_LOOK_AHEAD_STEPS = Integer.parseInt(
+					altSettings.getProperty("CompanionNarrowPassLookAheadSteps", "1"));
+			COMPANION_NARROW_PASS_BLOCKER_HOLD_RETRY_COUNT = Integer.parseInt(
+					altSettings.getProperty("CompanionNarrowPassBlockerHoldRetryCount", "2"));
+			if ((COMPANION_NARROW_PASS_LOOK_AHEAD_STEPS < 0)
+					|| (COMPANION_NARROW_PASS_LOOK_AHEAD_STEPS > 2)) {
+				_log.warning("CompanionNarrowPassLookAheadSteps must be between 0 and 2. Using default value 1.");
+				COMPANION_NARROW_PASS_LOOK_AHEAD_STEPS = 1;
+			}
+			if ((COMPANION_NARROW_PASS_BLOCKER_HOLD_RETRY_COUNT < 0)
+					|| (COMPANION_NARROW_PASS_BLOCKER_HOLD_RETRY_COUNT > 5)) {
+				_log.warning("CompanionNarrowPassBlockerHoldRetryCount must be between 0 and 5. Using default value 2.");
+				COMPANION_NARROW_PASS_BLOCKER_HOLD_RETRY_COUNT = 2;
 			}
 			COMPANION_TELEPORT_REACHABLE_PLACEMENT_ENABLED = Boolean.parseBoolean(
 					altSettings.getProperty("CompanionTeleportReachablePlacementEnabled", "false"));

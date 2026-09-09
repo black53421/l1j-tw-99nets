@@ -69,6 +69,7 @@ import l1j.server.server.model.ItemMakeByDoll;
 import l1j.server.server.model.L1Attack;
 import l1j.server.server.model.L1CastleLocation;
 import l1j.server.server.model.L1Character;
+import l1j.server.server.model.L1CompanionTrail;
 import l1j.server.server.model.L1ChatParty;
 import l1j.server.server.model.L1Clan;
 import l1j.server.server.model.L1DwarfForElfInventory;
@@ -144,6 +145,27 @@ import l1j.server.server.utils.collections.Lists;
 
 public class L1PcInstance extends L1Character {
 	private static final long serialVersionUID = 1L;
+
+	private final L1CompanionTrail _companionFollowTrail = new L1CompanionTrail();
+
+	public void recordCompanionFollowStep(int fromX, int fromY, int toX, int toY) {
+		if (!Config.COMPANION_FOLLOW_BREADCRUMB_ENABLED
+				|| Config.COMPANION_FOLLOW_QUEUE_ENABLED) {
+			_companionFollowTrail.clear();
+			return;
+		}
+		_companionFollowTrail.recordStep(getMapId(), fromX, fromY, toX, toY,
+				Config.COMPANION_FOLLOW_BREADCRUMB_HISTORY_SIZE);
+	}
+
+	public List<L1CompanionTrail.Breadcrumb> getCompanionFollowTrailSnapshot() {
+		if (!Config.COMPANION_FOLLOW_BREADCRUMB_ENABLED
+				|| Config.COMPANION_FOLLOW_QUEUE_ENABLED) {
+			return java.util.Collections.emptyList();
+		}
+		return _companionFollowTrail.snapshot(getMapId(), getX(), getY(),
+				Config.COMPANION_FOLLOW_BREADCRUMB_HISTORY_SIZE);
+	}
 
 	public static final int CLASSID_KNIGHT_MALE = 61;
 
