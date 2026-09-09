@@ -446,6 +446,7 @@
 	<!--遞給不死族的骨頭碎片 / 塔拉斯 / 象牙塔3樓-->
 	<MakeItem Name="request crystal staff" Class="W" AmountInputable="false" QuestId="Level30" QuestStep="5">
 		<Item Amount="1" ItemId="115"/>		<!--水晶魔杖-->
+		<Item Amount="1" ItemId="126"/>		<!--瑪那魔杖-->
 		<Material Amount="1" ItemId="40569"/>		<!--神秘魔杖-->
 		<Material Amount="1" ItemId="40580"/>		<!--不死族的骨頭碎片-->
 		<Succeed>
