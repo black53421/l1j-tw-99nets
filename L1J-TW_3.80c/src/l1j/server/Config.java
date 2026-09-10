@@ -190,6 +190,27 @@ public final class Config {
 
 	public static boolean PET_HUNGER_AFFECTS_OBEDIENCE;
 
+	public static boolean WEAPON_MAGIC_ENABLED;
+	public static double WEAPON_MAGIC_TRIGGER_RATE;
+	public static double WEAPON_MAGIC_DAMAGE_RATE;
+	public static double WEAPON_MAGIC_PVE_DAMAGE_RATE;
+	public static double WEAPON_MAGIC_PVP_DAMAGE_RATE;
+	public static boolean WEAPON_MAGIC_USE_MR_REDUCTION;
+	public static boolean WEAPON_MAGIC_USE_ATTRIBUTE_REDUCTION;
+	public static boolean WEAPON_MAGIC_ENCHANT_BONUS_ENABLED;
+	public static boolean WEAPON_MAGIC_ENCHANT_TRIGGER_BONUS_ENABLED;
+	public static double WEAPON_MAGIC_ENCHANT_TRIGGER_BONUS_RATE;
+	public static double WEAPON_MAGIC_PVE_MAX_ENCHANT_TRIGGER_BONUS;
+	public static double WEAPON_MAGIC_PVP_MAX_ENCHANT_TRIGGER_BONUS;
+	public static double WEAPON_MAGIC_PVE_MAX_TRIGGER_PROBABILITY;
+	public static double WEAPON_MAGIC_PVP_MAX_TRIGGER_PROBABILITY;
+	public static boolean WEAPON_MAGIC_MR_PENETRATION_ENABLED;
+	public static boolean WEAPON_MAGIC_ATTRIBUTE_PENETRATION_ENABLED;
+	public static double WEAPON_MAGIC_PVE_MAX_MR_PENETRATION;
+	public static double WEAPON_MAGIC_PVP_MAX_MR_PENETRATION;
+	public static double WEAPON_MAGIC_PVE_MAX_ATTRIBUTE_PENETRATION;
+	public static double WEAPON_MAGIC_PVP_MAX_ATTRIBUTE_PENETRATION;
+
 	public static boolean SERVER_PLAYER_COLLISION_ENABLED;
 
 	public static boolean BATCH_ENCHANT_ENABLED;
@@ -518,6 +539,8 @@ public final class Config {
 	public static final String RATES_CONFIG_FILE = "./config/rates.properties";
 
 	public static final String ALT_SETTINGS_FILE = "./config/altsettings.properties";
+
+	public static final String WEAPON_MAGIC_CONFIG_FILE = "./config/weaponmagic.properties";
 
 	public static final String CHAR_SETTINGS_CONFIG_FILE = "./config/charsettings.properties";
 
@@ -927,6 +950,53 @@ public final class Config {
 		catch (Exception e) {
 			_log.log(Level.SEVERE, e.getLocalizedMessage(), e);
 			throw new Error("Failed to Load " + ALT_SETTINGS_FILE + " File.");
+		}
+
+		// weaponmagic.properties
+		try {
+			Properties weaponMagicSettings = new Properties();
+			InputStream is = new FileInputStream(new File(WEAPON_MAGIC_CONFIG_FILE));
+			weaponMagicSettings.load(is);
+			is.close();
+
+			WEAPON_MAGIC_ENABLED = Boolean.parseBoolean(weaponMagicSettings.getProperty("WeaponMagicEnabled", "true"));
+			WEAPON_MAGIC_TRIGGER_RATE = Double.parseDouble(weaponMagicSettings.getProperty("WeaponMagicTriggerRate", "1.0"));
+			WEAPON_MAGIC_DAMAGE_RATE = Double.parseDouble(weaponMagicSettings.getProperty("WeaponMagicDamageRate", "1.0"));
+			WEAPON_MAGIC_PVE_DAMAGE_RATE = Double.parseDouble(weaponMagicSettings.getProperty("WeaponMagicPveDamageRate", "1.0"));
+			WEAPON_MAGIC_PVP_DAMAGE_RATE = Double.parseDouble(weaponMagicSettings.getProperty("WeaponMagicPvpDamageRate", "1.0"));
+			WEAPON_MAGIC_USE_MR_REDUCTION = Boolean.parseBoolean(weaponMagicSettings.getProperty("WeaponMagicUseMrReduction", "true"));
+			WEAPON_MAGIC_USE_ATTRIBUTE_REDUCTION = Boolean.parseBoolean(weaponMagicSettings.getProperty("WeaponMagicUseAttributeReduction", "true"));
+			WEAPON_MAGIC_ENCHANT_BONUS_ENABLED = Boolean.parseBoolean(weaponMagicSettings.getProperty("WeaponMagicEnchantBonusEnabled", "true"));
+			WEAPON_MAGIC_ENCHANT_TRIGGER_BONUS_ENABLED = Boolean.parseBoolean(weaponMagicSettings.getProperty("WeaponMagicEnchantTriggerBonusEnabled", "true"));
+			WEAPON_MAGIC_ENCHANT_TRIGGER_BONUS_RATE = Double.parseDouble(weaponMagicSettings.getProperty("WeaponMagicEnchantTriggerBonusRate", "1.0"));
+			WEAPON_MAGIC_PVE_MAX_ENCHANT_TRIGGER_BONUS = Double.parseDouble(weaponMagicSettings.getProperty("WeaponMagicPveMaxEnchantTriggerBonus", "100.0"));
+			WEAPON_MAGIC_PVP_MAX_ENCHANT_TRIGGER_BONUS = Double.parseDouble(weaponMagicSettings.getProperty("WeaponMagicPvpMaxEnchantTriggerBonus", "100.0"));
+			WEAPON_MAGIC_PVE_MAX_TRIGGER_PROBABILITY = Double.parseDouble(weaponMagicSettings.getProperty("WeaponMagicPveMaxTriggerProbability", "100.0"));
+			WEAPON_MAGIC_PVP_MAX_TRIGGER_PROBABILITY = Double.parseDouble(weaponMagicSettings.getProperty("WeaponMagicPvpMaxTriggerProbability", "100.0"));
+			WEAPON_MAGIC_MR_PENETRATION_ENABLED = Boolean.parseBoolean(weaponMagicSettings.getProperty("WeaponMagicMrPenetrationEnabled", "true"));
+			WEAPON_MAGIC_ATTRIBUTE_PENETRATION_ENABLED = Boolean.parseBoolean(weaponMagicSettings.getProperty("WeaponMagicAttributePenetrationEnabled", "true"));
+			WEAPON_MAGIC_PVE_MAX_MR_PENETRATION = Double.parseDouble(weaponMagicSettings.getProperty("WeaponMagicPveMaxMrPenetration", "100.0"));
+			WEAPON_MAGIC_PVP_MAX_MR_PENETRATION = Double.parseDouble(weaponMagicSettings.getProperty("WeaponMagicPvpMaxMrPenetration", "50.0"));
+			WEAPON_MAGIC_PVE_MAX_ATTRIBUTE_PENETRATION = Double.parseDouble(weaponMagicSettings.getProperty("WeaponMagicPveMaxAttributePenetration", "100.0"));
+			WEAPON_MAGIC_PVP_MAX_ATTRIBUTE_PENETRATION = Double.parseDouble(weaponMagicSettings.getProperty("WeaponMagicPvpMaxAttributePenetration", "50.0"));
+
+			WEAPON_MAGIC_TRIGGER_RATE = Math.max(0.0, WEAPON_MAGIC_TRIGGER_RATE);
+			WEAPON_MAGIC_DAMAGE_RATE = Math.max(0.0, WEAPON_MAGIC_DAMAGE_RATE);
+			WEAPON_MAGIC_PVE_DAMAGE_RATE = Math.max(0.0, WEAPON_MAGIC_PVE_DAMAGE_RATE);
+			WEAPON_MAGIC_PVP_DAMAGE_RATE = Math.max(0.0, WEAPON_MAGIC_PVP_DAMAGE_RATE);
+			WEAPON_MAGIC_ENCHANT_TRIGGER_BONUS_RATE = Math.max(0.0, WEAPON_MAGIC_ENCHANT_TRIGGER_BONUS_RATE);
+			WEAPON_MAGIC_PVE_MAX_ENCHANT_TRIGGER_BONUS = Math.max(0.0, Math.min(100.0, WEAPON_MAGIC_PVE_MAX_ENCHANT_TRIGGER_BONUS));
+			WEAPON_MAGIC_PVP_MAX_ENCHANT_TRIGGER_BONUS = Math.max(0.0, Math.min(100.0, WEAPON_MAGIC_PVP_MAX_ENCHANT_TRIGGER_BONUS));
+			WEAPON_MAGIC_PVE_MAX_TRIGGER_PROBABILITY = Math.max(0.0, Math.min(100.0, WEAPON_MAGIC_PVE_MAX_TRIGGER_PROBABILITY));
+			WEAPON_MAGIC_PVP_MAX_TRIGGER_PROBABILITY = Math.max(0.0, Math.min(100.0, WEAPON_MAGIC_PVP_MAX_TRIGGER_PROBABILITY));
+			WEAPON_MAGIC_PVE_MAX_MR_PENETRATION = Math.max(0.0, Math.min(100.0, WEAPON_MAGIC_PVE_MAX_MR_PENETRATION));
+			WEAPON_MAGIC_PVP_MAX_MR_PENETRATION = Math.max(0.0, Math.min(100.0, WEAPON_MAGIC_PVP_MAX_MR_PENETRATION));
+			WEAPON_MAGIC_PVE_MAX_ATTRIBUTE_PENETRATION = Math.max(0.0, Math.min(100.0, WEAPON_MAGIC_PVE_MAX_ATTRIBUTE_PENETRATION));
+			WEAPON_MAGIC_PVP_MAX_ATTRIBUTE_PENETRATION = Math.max(0.0, Math.min(100.0, WEAPON_MAGIC_PVP_MAX_ATTRIBUTE_PENETRATION));
+		}
+		catch (Exception e) {
+			_log.log(Level.SEVERE, e.getLocalizedMessage(), e);
+			throw new Error("Failed to Load " + WEAPON_MAGIC_CONFIG_FILE + " File.");
 		}
 
 		// charsettings.properties

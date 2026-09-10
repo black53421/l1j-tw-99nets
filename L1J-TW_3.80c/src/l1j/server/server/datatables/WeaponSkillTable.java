@@ -23,6 +23,7 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import l1j.server.L1DatabaseFactory;
+import l1j.server.server.model.L1WeaponMagicService;
 import l1j.server.server.model.L1WeaponSkill;
 import l1j.server.server.utils.SQLUtil;
 import l1j.server.server.utils.collections.Maps;
@@ -79,8 +80,37 @@ public class WeaponSkillTable {
 			int effectTarget = rs.getInt("effect_target");
 			boolean isArrowType = rs.getBoolean("arrow_type");
 			int attr = rs.getInt("attr");
+			String formulaType = rs.getString("formula_type");
+			boolean enabled = rs.getBoolean("enabled");
+			if (formulaType != null) {
+				formulaType = formulaType.trim();
+			}
+			if (enabled && !L1WeaponMagicService.isSupportedFormulaType(formulaType)) {
+				_log.warning("Unsupported weapon magic formula_type for weapon_id "
+						+ weaponId + ": " + formulaType);
+				continue;
+			}
+			double strRate = rs.getDouble("str_rate");
+			double dexRate = rs.getDouble("dex_rate");
+			double intRate = rs.getDouble("int_rate");
+			double spRate = rs.getDouble("sp_rate");
+			int randomStatMask = rs.getInt("random_stat_mask");
+			double randomStatRate = rs.getDouble("random_stat_rate");
+			double enchantRate = rs.getDouble("enchant_rate");
+			double enchantTriggerRate = rs.getDouble("enchant_trigger_rate");
+			int enchantTriggerStartLevel = rs.getInt("enchant_trigger_start_level");
+			int buffSkillId = rs.getInt("buff_skill_id");
+			int buffStatMask = rs.getInt("buff_stat_mask");
+			double buffStatRate = rs.getDouble("buff_stat_rate");
+			double mrPenetration = rs.getDouble("mr_penetration");
+			double attrPenetration = rs.getDouble("attr_penetration");
+			int areaCenter = rs.getInt("area_center");
+			boolean areaPvpProtection = rs.getBoolean("area_pvp_protection");
+			int effectType = rs.getInt("effect_type");
 			L1WeaponSkill weaponSkill = new L1WeaponSkill(weaponId, probability, fixDamage, randomDamage, area, skillId, skillTime, effectId,
-					effectTarget, isArrowType, attr);
+					effectTarget, isArrowType, attr, formulaType, enabled, strRate, dexRate, intRate, spRate, randomStatMask, randomStatRate,
+					enchantRate, enchantTriggerRate, enchantTriggerStartLevel, buffSkillId, buffStatMask, buffStatRate, mrPenetration,
+					attrPenetration, areaCenter, areaPvpProtection, effectType);
 			_weaponIdIndex.put(weaponId, weaponSkill);
 		}
 		_log.config("武器スキルリスト " + _weaponIdIndex.size() + "件ロード");

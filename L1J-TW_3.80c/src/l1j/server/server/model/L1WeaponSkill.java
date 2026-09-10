@@ -15,7 +15,6 @@
 package l1j.server.server.model;
 
 import static l1j.server.server.model.skill.L1SkillId.ABSOLUTE_BARRIER;
-import static l1j.server.server.model.skill.L1SkillId.BERSERKERS;
 import static l1j.server.server.model.skill.L1SkillId.COUNTER_MAGIC;
 import static l1j.server.server.model.skill.L1SkillId.EARTH_BIND;
 import static l1j.server.server.model.skill.L1SkillId.FREEZING_BLIZZARD;
@@ -23,10 +22,7 @@ import static l1j.server.server.model.skill.L1SkillId.FREEZING_BREATH;
 import static l1j.server.server.model.skill.L1SkillId.ICE_LANCE;
 import static l1j.server.server.model.skill.L1SkillId.ILLUSION_AVATAR;
 import static l1j.server.server.model.skill.L1SkillId.STATUS_FREEZE;
-import l1j.server.server.ActionCodes;
-import l1j.server.server.WarTimeController;
 import l1j.server.server.datatables.SkillsTable;
-import l1j.server.server.datatables.WeaponSkillTable;
 import l1j.server.server.model.Instance.L1ItemInstance;
 import l1j.server.server.model.Instance.L1MonsterInstance;
 import l1j.server.server.model.Instance.L1NpcInstance;
@@ -34,12 +30,9 @@ import l1j.server.server.model.Instance.L1PcInstance;
 import l1j.server.server.model.Instance.L1PetInstance;
 import l1j.server.server.model.Instance.L1SummonInstance;
 import l1j.server.server.model.skill.L1SkillUse;
-import l1j.server.server.serverpackets.S_DoActionGFX;
-import l1j.server.server.serverpackets.S_EffectLocation;
 import l1j.server.server.serverpackets.S_Paralysis;
 import l1j.server.server.serverpackets.S_ServerMessage;
 import l1j.server.server.serverpackets.S_SkillSound;
-import l1j.server.server.serverpackets.S_UseAttackSkill;
 import l1j.server.server.templates.L1Skills;
 import l1j.server.server.utils.Random;
 
@@ -70,9 +63,36 @@ public class L1WeaponSkill {
 
 	private int _attr;
 
+	private String _formulaType;
+	private boolean _enabled;
+	private double _strRate;
+	private double _dexRate;
+	private double _intRate;
+	private double _spRate;
+	private int _randomStatMask;
+	private double _randomStatRate;
+	private double _enchantRate;
+	private double _enchantTriggerRate;
+	private int _enchantTriggerStartLevel;
+	private int _buffSkillId;
+	private int _buffStatMask;
+	private double _buffStatRate;
+	private double _mrPenetration;
+	private double _attrPenetration;
+	private int _areaCenter;
+	private boolean _areaPvpProtection;
+	private int _effectType;
+
 	public L1WeaponSkill(int weaponId, int probability, int fixDamage,
 			int randomDamage, int area, int skillId, int skillTime,
-			int effectId, int effectTarget, boolean isArrowType, int attr) {
+			int effectId, int effectTarget, boolean isArrowType, int attr,
+			String formulaType, boolean enabled, double strRate,
+			double dexRate, double intRate, double spRate, int randomStatMask,
+			double randomStatRate, double enchantRate, double enchantTriggerRate,
+			int enchantTriggerStartLevel, int buffSkillId, int buffStatMask,
+			double buffStatRate, double mrPenetration,
+			double attrPenetration, int areaCenter, boolean areaPvpProtection,
+			int effectType) {
 		_weaponId = weaponId;
 		_probability = probability;
 		_fixDamage = fixDamage;
@@ -84,6 +104,25 @@ public class L1WeaponSkill {
 		_effectTarget = effectTarget;
 		_isArrowType = isArrowType;
 		_attr = attr;
+		_formulaType = formulaType;
+		_enabled = enabled;
+		_strRate = strRate;
+		_dexRate = dexRate;
+		_intRate = intRate;
+		_spRate = spRate;
+		_randomStatMask = randomStatMask;
+		_randomStatRate = randomStatRate;
+		_enchantRate = enchantRate;
+		_enchantTriggerRate = enchantTriggerRate;
+		_enchantTriggerStartLevel = enchantTriggerStartLevel;
+		_buffSkillId = buffSkillId;
+		_buffStatMask = buffStatMask;
+		_buffStatRate = buffStatRate;
+		_mrPenetration = mrPenetration;
+		_attrPenetration = attrPenetration;
+		_areaCenter = areaCenter;
+		_areaPvpProtection = areaPvpProtection;
+		_effectType = effectType;
 	}
 
 	public int getWeaponId() {
@@ -130,156 +169,87 @@ public class L1WeaponSkill {
 		return _attr;
 	}
 
+	public String getFormulaType() {
+		return _formulaType;
+	}
+
+	public boolean isEnabled() {
+		return _enabled;
+	}
+
+	public double getStrRate() {
+		return _strRate;
+	}
+
+	public double getDexRate() {
+		return _dexRate;
+	}
+
+	public double getIntRate() {
+		return _intRate;
+	}
+
+	public double getSpRate() {
+		return _spRate;
+	}
+
+	public int getRandomStatMask() {
+		return _randomStatMask;
+	}
+
+	public double getRandomStatRate() {
+		return _randomStatRate;
+	}
+
+	public double getEnchantRate() {
+		return _enchantRate;
+	}
+
+	public double getEnchantTriggerRate() {
+		return _enchantTriggerRate;
+	}
+
+	public int getEnchantTriggerStartLevel() {
+		return _enchantTriggerStartLevel;
+	}
+
+	public int getBuffSkillId() {
+		return _buffSkillId;
+	}
+
+	public int getBuffStatMask() {
+		return _buffStatMask;
+	}
+
+	public double getBuffStatRate() {
+		return _buffStatRate;
+	}
+
+	public double getMrPenetration() {
+		return _mrPenetration;
+	}
+
+	public double getAttrPenetration() {
+		return _attrPenetration;
+	}
+
+	public int getAreaCenter() {
+		return _areaCenter;
+	}
+
+	public boolean isAreaPvpProtection() {
+		return _areaPvpProtection;
+	}
+
+	public int getEffectType() {
+		return _effectType;
+	}
+
 	public static double getWeaponSkillDamage(L1PcInstance pc, L1Character cha,
 			int weaponId) {
-		L1WeaponSkill weaponSkill = WeaponSkillTable.getInstance().getTemplate(
-				weaponId);
-		if ((pc == null) || (cha == null) || (weaponSkill == null)) {
-			return 0;
-		}
-
-		int chance = Random.nextInt(100) + 1;
-		if (weaponSkill.getProbability() < chance) {
-			return 0;
-		}
-
-		int skillId = weaponSkill.getSkillId();
-		if (skillId != 0) {
-			L1Skills skill = SkillsTable.getInstance().getTemplate(skillId);
-			if ((skill != null) && skill.getTarget().equals("buff")) {
-				if (!isFreeze(cha)) { // 凍結状態orカウンターマジック中
-					cha.setSkillEffect(skillId,
-							weaponSkill.getSkillTime() * 1000);
-				}
-			}
-		}
-
-		int effectId = weaponSkill.getEffectId();
-		if (effectId != 0) {
-			int chaId = 0;
-			if (weaponSkill.getEffectTarget() == 0) {
-				chaId = cha.getId();
-			} else {
-				chaId = pc.getId();
-			}
-			boolean isArrowType = weaponSkill.isArrowType();
-			if (!isArrowType) {
-				pc.sendPackets(new S_SkillSound(chaId, effectId));
-				pc.broadcastPacket(new S_SkillSound(chaId, effectId));
-			} else {
-				int[] data = {ActionCodes.ACTION_Attack, 0, effectId, 6};
-				S_UseAttackSkill packet = new S_UseAttackSkill(pc, cha.getId(), cha.getX(), cha.getY(), data, false);
-				pc.sendPackets(packet);
-				pc.broadcastPacket(packet);
-			}
-		}
-
-		double damage = 0;
-		int randomDamage = weaponSkill.getRandomDamage();
-		if (randomDamage != 0) {
-			damage = Random.nextInt(randomDamage);
-		}
-		damage += weaponSkill.getFixDamage();
-
-		int area = weaponSkill.getArea();
-		if ((area > 0) || (area == -1)) { // 範囲の場合
-			for (L1Object object : L1World.getInstance().getVisibleObjects(cha,
-					area)) {
-				if (object == null) {
-					continue;
-				}
-				if (!(object instanceof L1Character)) {
-					continue;
-				}
-				if (object.getId() == pc.getId()) {
-					continue;
-				}
-				if (object.getId() == cha.getId()) { // 攻撃対象はL1Attackで処理するため除外
-					continue;
-				}
-
-				// 攻撃対象がMOBの場合は、範囲内のMOBにのみ当たる
-				// 攻撃対象がPC,Summon,Petの場合は、範囲内のPC,Summon,Pet,MOBに当たる
-				if (cha instanceof L1MonsterInstance) {
-					if (!(object instanceof L1MonsterInstance)) {
-						continue;
-					}
-				}
-				if ((cha instanceof L1PcInstance)
-						|| (cha instanceof L1SummonInstance)
-						|| (cha instanceof L1PetInstance)) {
-					if (!((object instanceof L1PcInstance)
-							|| (object instanceof L1SummonInstance)
-							|| (object instanceof L1PetInstance) || (object instanceof L1MonsterInstance))) {
-						continue;
-					}
-				}
-
-				// 判斷是否在攻城戰中
-				boolean isNowWar = false;
-				int castleId = L1CastleLocation.getCastleIdByArea((L1Character)object);
-				if (castleId > 0) {
-					isNowWar = WarTimeController.getInstance().isNowWar(castleId);
-				}
-				if (!isNowWar) { // 非攻城戰區域
-					// 對象不是怪物 且在安全區 不會打到
-					if ( !(object instanceof L1MonsterInstance) && ((L1Character)object).getZoneType()== 1 ) 
-						continue;
-					// 寵物減傷
-					if (object instanceof L1PetInstance)
-						damage /= 8;
-					else if (object instanceof L1SummonInstance) {
-						L1SummonInstance summon = (L1SummonInstance) object;
-						if (summon.isExsistMaster())
-							damage /= 8;
-					}
-				}
-				
-				damage = calcDamageReduction(pc, (L1Character) object, damage,
-						weaponSkill.getAttr());
-				if (damage <= 0) {
-					continue;
-				}
-				if (object instanceof L1PcInstance) {
-					L1PcInstance targetPc = (L1PcInstance) object;
-					targetPc.sendPackets(new S_DoActionGFX(targetPc.getId(),
-							ActionCodes.ACTION_Damage));
-					targetPc.broadcastPacket(new S_DoActionGFX(
-							targetPc.getId(), ActionCodes.ACTION_Damage));
-					targetPc.receiveDamage(pc, (int) damage, false);
-				} else if ((object instanceof L1SummonInstance)
-						|| (object instanceof L1PetInstance)
-						|| (object instanceof L1MonsterInstance)) {
-					L1NpcInstance targetNpc = (L1NpcInstance) object;
-					targetNpc.broadcastPacket(new S_DoActionGFX(targetNpc
-							.getId(), ActionCodes.ACTION_Damage));
-					targetNpc.receiveDamage(pc, (int) damage);
-				}
-			}
-		}
-
-		return calcDamageReduction(pc, cha, damage, weaponSkill.getAttr());
+		return L1WeaponMagicService.getInstance().execute(pc, cha, weaponId);
 	}
 
-	public static double getBaphometStaffDamage(L1PcInstance pc, L1Character cha) {
-		double dmg = 0;
-		int chance = Random.nextInt(100) + 1;
-		if (14 >= chance) {
-			int locx = cha.getX();
-			int locy = cha.getY();
-			int sp = pc.getSp();
-			int intel = pc.getInt();
-			double bsk = 0;
-			if (pc.hasSkillEffect(BERSERKERS)) {
-				bsk = 0.2;
-			}
-			dmg = (intel + sp) * (1.8 + bsk) + Random.nextInt(intel + sp) * 1.8;
-			S_EffectLocation packet = new S_EffectLocation(locx, locy, 129);
-			pc.sendPackets(packet);
-			pc.broadcastPacket(packet);
-		}
-		return calcDamageReduction(pc, cha, dmg, L1Skills.ATTR_EARTH);
-	}
 
 	/** 骰子匕首 */
 	public static double getDiceDaggerDamage(L1PcInstance pc, L1Character cha,
@@ -346,123 +316,6 @@ public class L1WeaponSkill {
 		return calcDamageReduction(pc, cha, dmg, 0);
 	}
 
-	public static double getAreaSkillWeaponDamage(L1PcInstance pc,
-			L1Character cha, int weaponId) {
-		double dmg = 0;
-		int probability = 0;
-		int attr = 0;
-		int chance = Random.nextInt(100) + 1;
-		if (weaponId == 263 || weaponId == 287) { // フリージングランサー
-			probability = 5;
-			attr = L1Skills.ATTR_WATER;
-		} else if (weaponId == 260) { // レイジングウィンド
-			probability = 4;
-			attr = L1Skills.ATTR_WIND;
-		}
-		if (probability >= chance) {
-			int sp = pc.getSp();
-			int intel = pc.getInt();
-			int area = 0;
-			int effectTargetId = 0;
-			int effectId = 0;
-			L1Character areaBase = cha;
-			double damageRate = 0;
-
-			if (weaponId == 263 || weaponId == 290) { // フリージングランサー
-				area = 3;
-				damageRate = 1.4D;
-				effectTargetId = cha.getId();
-				effectId = 1804;
-				areaBase = cha;
-			} else if (weaponId == 260) { // レイジングウィンド
-				area = 4;
-				damageRate = 1.5D;
-				effectTargetId = pc.getId();
-				effectId = 758;
-				areaBase = pc;
-			}
-			double bsk = 0;
-			if (pc.hasSkillEffect(BERSERKERS)) {
-				bsk = 0.2;
-			}
-			dmg = (intel + sp) * (damageRate + bsk)
-					+ Random.nextInt(intel + sp) * damageRate;
-			pc.sendPackets(new S_SkillSound(effectTargetId, effectId));
-			pc.broadcastPacket(new S_SkillSound(effectTargetId, effectId));
-
-			for (L1Object object : L1World.getInstance().getVisibleObjects(
-					areaBase, area)) {
-				if (object == null) {
-					continue;
-				}
-				if (!(object instanceof L1Character)) {
-					continue;
-				}
-				if (object.getId() == pc.getId()) {
-					continue;
-				}
-				if (object.getId() == cha.getId()) { // 攻撃対象は除外
-					continue;
-				}
-
-				// 攻撃対象がMOBの場合は、範囲内のMOBにのみ当たる
-				// 攻撃対象がPC,Summon,Petの場合は、範囲内のPC,Summon,Pet,MOBに当たる
-				if (cha instanceof L1MonsterInstance) {
-					if (!(object instanceof L1MonsterInstance)) {
-						continue;
-					}
-				}
-				if ((cha instanceof L1PcInstance)
-						|| (cha instanceof L1SummonInstance)
-						|| (cha instanceof L1PetInstance)) {
-					if (!((object instanceof L1PcInstance)
-							|| (object instanceof L1SummonInstance)
-							|| (object instanceof L1PetInstance) || (object instanceof L1MonsterInstance))) {
-						continue;
-					}
-				}
-
-				dmg = calcDamageReduction(pc, (L1Character) object, dmg, attr);
-				if (dmg <= 0) {
-					continue;
-				}
-				if (object instanceof L1PcInstance) {
-					L1PcInstance targetPc = (L1PcInstance) object;
-					targetPc.sendPackets(new S_DoActionGFX(targetPc.getId(),
-							ActionCodes.ACTION_Damage));
-					targetPc.broadcastPacket(new S_DoActionGFX(
-							targetPc.getId(), ActionCodes.ACTION_Damage));
-					targetPc.receiveDamage(pc, (int) dmg, false);
-				} else if ((object instanceof L1SummonInstance)
-						|| (object instanceof L1PetInstance)
-						|| (object instanceof L1MonsterInstance)) {
-					L1NpcInstance targetNpc = (L1NpcInstance) object;
-					targetNpc.broadcastPacket(new S_DoActionGFX(targetNpc
-							.getId(), ActionCodes.ACTION_Damage));
-					targetNpc.receiveDamage(pc, (int) dmg);
-				}
-			}
-		}
-		return calcDamageReduction(pc, cha, dmg, attr);
-	}
-
-	public static double getLightningEdgeDamage(L1PcInstance pc, L1Character cha) {
-		double dmg = 0;
-		int chance = Random.nextInt(100) + 1;
-		if (4 >= chance) {
-			int sp = pc.getSp();
-			int intel = pc.getInt();
-			double bsk = 0;
-			if (pc.hasSkillEffect(BERSERKERS)) {
-				bsk = 0.2;
-			}
-			dmg = (intel + sp) * (2 + bsk) + Random.nextInt(intel + sp) * 2;
-
-			pc.sendPackets(new S_SkillSound(cha.getId(), 10));
-			pc.broadcastPacket(new S_SkillSound(cha.getId(), 10));
-		}
-		return calcDamageReduction(pc, cha, dmg, L1Skills.ATTR_WIND);
-	}
 
 	public static void giveArkMageDiseaseEffect(L1PcInstance pc, L1Character cha) {
 		int chance = Random.nextInt(1000) + 1;

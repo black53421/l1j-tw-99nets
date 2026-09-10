@@ -906,22 +906,10 @@ public class L1Attack {
 		else
 			dmg = calShortRageDamage(dmg);
 
-		if (_weaponId == 124 || _weaponId == 289 || _weaponId == 290
-				|| _weaponId == 291 || _weaponId == 292 || _weaponId == 293
-				|| _weaponId == 294 || _weaponId == 295 || _weaponId == 296
-				|| _weaponId == 297 || _weaponId == 298 || _weaponId == 299
-				|| _weaponId == 300 || _weaponId == 301 || _weaponId == 302
-				|| _weaponId == 303) { // バフォメットスタッフ
-			dmg += L1WeaponSkill.getBaphometStaffDamage(_pc, _target);
-		} else if (_weaponId == 2 || _weaponId == 200002) { // ダイスダガー
+		if (_weaponId == 2 || _weaponId == 200002) { // ダイスダガー
 			dmg += L1WeaponSkill.getDiceDaggerDamage(_pc, _targetPc, weapon);
 		} else if (_weaponId == 204 || _weaponId == 100204) { // 真紅のクロスボウ
 			L1WeaponSkill.giveFettersEffect(_pc, _targetPc);
-		} else if (_weaponId == 264 || _weaponId == 288) { // ライトニングエッジ
-			dmg += L1WeaponSkill.getLightningEdgeDamage(_pc, _target);
-		} else if (_weaponId == 260 || _weaponId == 263 || _weaponId == 287) { // レイジングウィンド、フリージングランサー
-			dmg += L1WeaponSkill.getAreaSkillWeaponDamage(_pc, _target,
-					_weaponId);
 		} else if (_weaponId == 261) { // アークメイジスタッフ
 			L1WeaponSkill.giveArkMageDiseaseEffect(_pc, _target);
 		} else {
@@ -1036,23 +1024,10 @@ public class L1Attack {
 		else
 			dmg = calShortRageDamage(dmg);
 
-		if (_weaponId == 124 || _weaponId == 289 || _weaponId == 290
-				|| _weaponId == 291 || _weaponId == 292 || _weaponId == 293
-				|| _weaponId == 294 || _weaponId == 295 || _weaponId == 296
-				|| _weaponId == 297 || _weaponId == 298 || _weaponId == 299
-				|| _weaponId == 300 || _weaponId == 301 || _weaponId == 302
-				|| _weaponId == 303) {
-			dmg += L1WeaponSkill.getBaphometStaffDamage(_pc, _target);
-		} else if ((_weaponId == 2) || (_weaponId == 200002)) { // ダイスダガー
+		if ((_weaponId == 2) || (_weaponId == 200002)) { // ダイスダガー
 			dmg += L1WeaponSkill.getDiceDaggerDamage(_pc, _targetNpc, weapon);
 		} else if ((_weaponId == 204) || (_weaponId == 100204)) { // 真紅のクロスボウ
 			L1WeaponSkill.giveFettersEffect(_pc, _targetNpc);
-		//} else if (_weaponId == 264 || _weaponId == 291) { // ライトニングエッジ
-		} else if (_weaponId == 264 || _weaponId == 288) { // ライトニングエッジ, 天雷劍能發動的修正
-			dmg += L1WeaponSkill.getLightningEdgeDamage(_pc, _target);
-		} else if ((_weaponId == 260) || (_weaponId == 263 || _weaponId == 287)) { // レイジングウィンド、フリージングランサー
-			dmg += L1WeaponSkill.getAreaSkillWeaponDamage(_pc, _target,
-					_weaponId);
 		} else if (_weaponId == 261) { // アークメイジスタッフ
 			L1WeaponSkill.giveArkMageDiseaseEffect(_pc, _target);
 		} else {
