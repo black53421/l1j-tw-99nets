@@ -15,6 +15,7 @@
 package l1j.server.server.clientpackets;
 
 import l1j.server.server.ClientThread;
+import l1j.server.server.TebesRiftController;
 import l1j.server.server.model.Dungeon;
 import l1j.server.server.model.Instance.L1PcInstance;
 
@@ -43,6 +44,9 @@ public class C_EnterPortal extends ClientBasePacket {
 			return;
 		}
 		// 取得傳送的點
+		if (TebesRiftController.getInstance().tryEnter(pc)) {
+			return;
+		}
 		Dungeon.getInstance().dg(locx, locy, pc.getMap().getId(), pc);
 	}
 

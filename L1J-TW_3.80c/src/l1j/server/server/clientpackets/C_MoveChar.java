@@ -19,6 +19,7 @@ import static l1j.server.server.model.skill.L1SkillId.ABSOLUTE_BARRIER;
 import static l1j.server.server.model.skill.L1SkillId.MEDITATION;
 import l1j.server.Config;
 import l1j.server.server.ClientThread;
+import l1j.server.server.TebesRiftController;
 import l1j.server.server.model.AcceleratorChecker;
 import l1j.server.server.model.Dungeon;
 import l1j.server.server.model.DungeonRandom;
@@ -117,6 +118,10 @@ public class C_MoveChar extends ClientBasePacket {
 		traceMovePacket(pc, fromX, fromY, targetX, targetY, heading, collision);
 		if (collision.isBlocked()) {
 			correctClientPosition(pc, targetX, targetY, heading);
+			return;
+		}
+
+		if (TebesRiftController.getInstance().tryEnter(pc)) {
 			return;
 		}
 

@@ -213,6 +213,32 @@ public final class Config {
 
 	public static boolean SERVER_PLAYER_COLLISION_ENABLED;
 
+	public static boolean TEBES_RIFT_ENABLED;
+
+	public static String TEBES_RIFT_ENTRY_MODE;
+
+	public static String TEBES_RIFT_ENTRY_WINDOWS;
+
+	public static int TEBES_RIFT_PORTAL_NPC_ID;
+
+	public static String TEBES_RIFT_PORTAL_SPAWN_MODE;
+
+	public static String TEBES_RIFT_PORTAL_RANDOM_LOCATIONS;
+
+	public static String TEBES_RIFT_PORTAL_FIXED_LOCATION;
+
+	public static int TEBES_RIFT_TRIGGER_RADIUS;
+
+	public static int TEBES_RIFT_DESTINATION_X;
+
+	public static int TEBES_RIFT_DESTINATION_Y;
+
+	public static short TEBES_RIFT_DESTINATION_MAP_ID;
+
+	public static int TEBES_RIFT_DESTINATION_HEADING;
+
+	public static boolean TEBES_RIFT_BROADCAST_ENABLED;
+
 	public static boolean BATCH_ENCHANT_ENABLED;
 
 	public static int BATCH_ENCHANT_MAX_ITEMS;
@@ -670,6 +696,56 @@ public final class Config {
 					altSettings.getProperty("PetHungerAffectsObedience", "true"));
 			SERVER_PLAYER_COLLISION_ENABLED = Boolean.parseBoolean(
 					altSettings.getProperty("ServerPlayerCollisionEnabled", "false"));
+			TEBES_RIFT_ENABLED = Boolean.parseBoolean(
+					altSettings.getProperty("TebesRiftEnabled", "true"));
+			TEBES_RIFT_ENTRY_MODE = altSettings.getProperty(
+					"TebesRiftEntryMode", "SCHEDULE").trim().toUpperCase();
+			if (!TEBES_RIFT_ENTRY_MODE.equals("ALWAYS")
+					&& !TEBES_RIFT_ENTRY_MODE.equals("SCHEDULE")
+					&& !TEBES_RIFT_ENTRY_MODE.equals("DISABLED")) {
+				_log.warning("TebesRiftEntryMode must be ALWAYS, SCHEDULE, or DISABLED. Using SCHEDULE.");
+				TEBES_RIFT_ENTRY_MODE = "SCHEDULE";
+			}
+			TEBES_RIFT_ENTRY_WINDOWS = altSettings.getProperty(
+					"TebesRiftEntryWindows", "09:00-10:00,13:00-14:00,18:00-20:00").trim();
+			TEBES_RIFT_PORTAL_NPC_ID = Integer.parseInt(
+					altSettings.getProperty("TebesRiftPortalNpcId", "71254"));
+			TEBES_RIFT_PORTAL_SPAWN_MODE = altSettings.getProperty(
+					"TebesRiftPortalSpawnMode", "RANDOM").trim().toUpperCase();
+			if (!TEBES_RIFT_PORTAL_SPAWN_MODE.equals("RANDOM")
+					&& !TEBES_RIFT_PORTAL_SPAWN_MODE.equals("FIXED")) {
+				_log.warning("TebesRiftPortalSpawnMode must be RANDOM or FIXED. Using RANDOM.");
+				TEBES_RIFT_PORTAL_SPAWN_MODE = "RANDOM";
+			}
+			TEBES_RIFT_PORTAL_RANDOM_LOCATIONS = altSettings.getProperty(
+					"TebesRiftPortalRandomLocations", "33966,33253,4,5").trim();
+			TEBES_RIFT_PORTAL_FIXED_LOCATION = altSettings.getProperty(
+					"TebesRiftPortalFixedLocation", "33966,33253,4,5").trim();
+			TEBES_RIFT_TRIGGER_RADIUS = Integer.parseInt(
+					altSettings.getProperty("TebesRiftTriggerRadius", "1"));
+			TEBES_RIFT_DESTINATION_X = Integer.parseInt(
+					altSettings.getProperty("TebesRiftDestinationX", "32639"));
+			TEBES_RIFT_DESTINATION_Y = Integer.parseInt(
+					altSettings.getProperty("TebesRiftDestinationY", "32876"));
+			TEBES_RIFT_DESTINATION_MAP_ID = Short.parseShort(
+					altSettings.getProperty("TebesRiftDestinationMapId", "780"));
+			TEBES_RIFT_DESTINATION_HEADING = Integer.parseInt(
+					altSettings.getProperty("TebesRiftDestinationHeading", "5"));
+			TEBES_RIFT_BROADCAST_ENABLED = Boolean.parseBoolean(
+					altSettings.getProperty("TebesRiftBroadcastEnabled", "true"));
+			if (TEBES_RIFT_PORTAL_NPC_ID <= 0) {
+				_log.warning("TebesRiftPortalNpcId must be greater than 0. Using 71254.");
+				TEBES_RIFT_PORTAL_NPC_ID = 71254;
+			}
+			if ((TEBES_RIFT_TRIGGER_RADIUS < 1) || (TEBES_RIFT_TRIGGER_RADIUS > 3)) {
+				_log.warning("TebesRiftTriggerRadius must be between 1 and 3. Using 1.");
+				TEBES_RIFT_TRIGGER_RADIUS = 1;
+			}
+			if ((TEBES_RIFT_DESTINATION_HEADING < 0)
+					|| (TEBES_RIFT_DESTINATION_HEADING > 7)) {
+				_log.warning("TebesRiftDestinationHeading must be between 0 and 7. Using 5.");
+				TEBES_RIFT_DESTINATION_HEADING = 5;
+			}
 			if (PET_MONSTER_MAGIC_PRIMARY_DAMAGE_RATE < 0
 					|| PET_MONSTER_MAGIC_PRIMARY_DAMAGE_RATE > 100) {
 				_log.warning("PetMonsterMagicPrimaryDamageRate must be between 0 and 100. Using default value 100.");

@@ -266,6 +266,8 @@ public class GameServer extends Thread {
 		NpcSpawnTable.getInstance();
 		IpTable.getInstance();
 		MapsTable.getInstance();
+		TebesRiftController tebesRiftController = TebesRiftController.getInstance();
+		GeneralThreadPool.getInstance().execute(tebesRiftController);
 		UBSpawnTable.getInstance();
 		PetTable.getInstance();
 		ClanTable.getInstance();
