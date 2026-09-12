@@ -419,6 +419,10 @@ public final class Config {
 
 	public static int ILLUSIONIST_MAX_MP;
 
+	public static int LEVEL_UP_RESTORE_HP_PERCENT;
+
+	public static int LEVEL_UP_RESTORE_MP_PERCENT;
+
 	public static int LV50_EXP;
 
 	public static int LV51_EXP;
@@ -1096,6 +1100,8 @@ public final class Config {
 			DRAGONKNIGHT_MAX_MP = Integer.parseInt(charSettings.getProperty("DragonKnightMaxMP", "600"));
 			ILLUSIONIST_MAX_HP = Integer.parseInt(charSettings.getProperty("IllusionistMaxHP", "900"));
 			ILLUSIONIST_MAX_MP = Integer.parseInt(charSettings.getProperty("IllusionistMaxMP", "1100"));
+			LEVEL_UP_RESTORE_HP_PERCENT = Math.max(0, Math.min(100, Integer.parseInt(charSettings.getProperty("LevelUpRestoreHPPercent", "0"))));
+			LEVEL_UP_RESTORE_MP_PERCENT = Math.max(0, Math.min(100, Integer.parseInt(charSettings.getProperty("LevelUpRestoreMPPercent", "0"))));
 			LV50_EXP = Integer.parseInt(charSettings.getProperty("Lv50Exp", "1"));
 			LV51_EXP = Integer.parseInt(charSettings.getProperty("Lv51Exp", "1"));
 			LV52_EXP = Integer.parseInt(charSettings.getProperty("Lv52Exp", "1"));
@@ -1457,6 +1463,12 @@ public final class Config {
 		}
 		else if (pName.equalsIgnoreCase("IllusionistMaxMP")) {
 			ILLUSIONIST_MAX_MP = Integer.parseInt(pValue);
+		}
+		else if (pName.equalsIgnoreCase("LevelUpRestoreHPPercent")) {
+			LEVEL_UP_RESTORE_HP_PERCENT = Math.max(0, Math.min(100, Integer.parseInt(pValue)));
+		}
+		else if (pName.equalsIgnoreCase("LevelUpRestoreMPPercent")) {
+			LEVEL_UP_RESTORE_MP_PERCENT = Math.max(0, Math.min(100, Integer.parseInt(pValue)));
 		}
 		else if (pName.equalsIgnoreCase("Lv50Exp")) {
 			LV50_EXP = Integer.parseInt(pValue);

@@ -2734,6 +2734,16 @@ public class L1PcInstance extends L1Character {
 			addBaseMaxHp(randomHp);
 			addBaseMaxMp(randomMp);
 		}
+
+		if (Config.LEVEL_UP_RESTORE_HP_PERCENT > 0) {
+			int restoreHp = (getMaxHp() * Config.LEVEL_UP_RESTORE_HP_PERCENT) / 100;
+			setCurrentHp(getCurrentHp() + restoreHp);
+		}
+		if (Config.LEVEL_UP_RESTORE_MP_PERCENT > 0) {
+			int restoreMp = (getMaxMp() * Config.LEVEL_UP_RESTORE_MP_PERCENT) / 100;
+			setCurrentMp(getCurrentMp() + restoreMp);
+		}
+
 		resetBaseHitup();
 		resetBaseDmgup();
 		resetBaseAc();
