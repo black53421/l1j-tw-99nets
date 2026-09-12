@@ -186,6 +186,8 @@ public class L1PetInstance extends L1NpcInstance {
 		setId(IdFactory.getInstance().nextId());
 		L1Npc petTemplate = _type.getPetNpcTemplate();
 		setting_template(petTemplate);
+		// Keep pet progression level independent from the NPC template level.
+		setLevel(Config.PET_INITIAL_LEVEL);
 		if (_type.getPetNpcId() == target.getNpcTemplate().get_npcId()) {
 			setCurrentHpDirect(target.getCurrentHp());
 			setCurrentMpDirect(target.getCurrentMp());
@@ -193,7 +195,7 @@ public class L1PetInstance extends L1NpcInstance {
 			setCurrentHpDirect(Math.min(target.getCurrentHp(), getMaxHp()));
 			setCurrentMpDirect(Math.min(target.getCurrentMp(), getMaxMp()));
 		}
-		setExp(750); // Lv.5のEXP
+		setExp(ExpTable.getExpByLevel(Config.PET_INITIAL_LEVEL));
 		setExpPercent(0);
 		setLawful(0);
 		setTempLawful(0);

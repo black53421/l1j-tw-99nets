@@ -1091,11 +1091,14 @@ public class L1Attack {
 		int lvl = _npc.getLevel();
 		double dmg = 0D;
 
-		dmg = Random.nextInt(lvl) + _npc.getStr() / 2 + 1;
-
 		if (_npc instanceof L1PetInstance) {
+			// Use the NPC template level only for the pet base physical damage roll.
+			dmg = Random.nextInt(_npc.getNpcTemplate().get_level())
+					+ _npc.getStr() / 2 + 1;
 			dmg += (lvl / 16); // ペットはLV16毎に追加打撃
 			dmg += ((L1PetInstance) _npc).getDamageByWeapon();
+		} else {
+			dmg = Random.nextInt(lvl) + _npc.getStr() / 2 + 1;
 		}
 
 		dmg += _npc.getDmgup();

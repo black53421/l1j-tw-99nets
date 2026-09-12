@@ -94,10 +94,10 @@ public class PetTable {
 		l1pet.set_objid(objid);
 		l1pet.set_npcid(pet.getNpcTemplate().get_npcId());
 		l1pet.set_name(pet.getNpcTemplate().get_name());
-		l1pet.set_level(pet.getNpcTemplate().get_level());
+		l1pet.set_level(pet.getLevel());
 		l1pet.set_hp(pet.getMaxHp());
 		l1pet.set_mp(pet.getMaxMp());
-		l1pet.set_exp(750); // Lv.5のEXP
+		l1pet.set_exp(pet.getExp());
 		l1pet.set_lawful(0);
 		l1pet.set_food(50);
 		_pets.put(new Integer(itemobjid), l1pet);

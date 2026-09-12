@@ -182,6 +182,8 @@ public final class Config {
 
 	public static int PET_LOOT_OVERFLOW_MODE;
 
+	public static int PET_INITIAL_LEVEL;
+
 	public static boolean PARTY_PET_HP_BAR_ENABLED;
 
 	public static boolean PARTY_SUMMON_HP_BAR_ENABLED;
@@ -701,6 +703,12 @@ public final class Config {
 			if ((PET_LOOT_OVERFLOW_MODE < 0) || (PET_LOOT_OVERFLOW_MODE > 1)) {
 				_log.warning("PetLootOverflowMode must be 0 or 1. Using default value 0.");
 				PET_LOOT_OVERFLOW_MODE = 0;
+			}
+			PET_INITIAL_LEVEL = Integer.parseInt(
+					altSettings.getProperty("PetInitialLevel", "5"));
+			if ((PET_INITIAL_LEVEL < 1) || (PET_INITIAL_LEVEL > 99)) {
+				_log.warning("PetInitialLevel must be between 1 and 99. Using default value 5.");
+				PET_INITIAL_LEVEL = 5;
 			}
 			PARTY_PET_HP_BAR_ENABLED = Boolean.parseBoolean(
 					altSettings.getProperty("PartyPetHpBarEnabled", "false"));
@@ -1355,6 +1363,14 @@ public final class Config {
 				_log.warning("PetLootOverflowMode must be 0 or 1. Keeping current value.");
 			} else {
 				PET_LOOT_OVERFLOW_MODE = mode;
+			}
+		}
+		else if (pName.equalsIgnoreCase("PetInitialLevel")) {
+			int level = Integer.parseInt(pValue);
+			if ((level < 1) || (level > 99)) {
+				_log.warning("PetInitialLevel must be between 1 and 99. Keeping current value.");
+			} else {
+				PET_INITIAL_LEVEL = level;
 			}
 		}
 		else if (pName.equalsIgnoreCase("PartyPetHpBarEnabled")) {
