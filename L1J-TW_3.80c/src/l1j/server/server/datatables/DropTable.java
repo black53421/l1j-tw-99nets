@@ -306,8 +306,14 @@ public class DropTable {
 							}
 						}
 						else {
-							targetInventory = L1World.getInstance().getInventory(acquisitor.getX(), acquisitor.getY(), acquisitor.getMapId()); // 持てないので足元に落とす
-							isGround = true;
+							L1PcInstance overflowOwner = getPetLootOverflowOwner(acquisitor, npc, item);
+							if (overflowOwner != null) {
+								targetInventory = overflowOwner.getInventory();
+								overflowOwner.sendPackets(new S_ServerMessage(143, npc.getName(), item.getLogName()));
+							} else {
+								targetInventory = L1World.getInstance().getInventory(acquisitor.getX(), acquisitor.getY(), acquisitor.getMapId()); // 持てないので足元に落とす
+								isGround = true;
+							}
 						}
 						break;
 					}
@@ -378,6 +384,32 @@ public class DropTable {
 			inventory.tradeItem(item, item.getCount(), targetInventory);
 		}
 		npc.turnOnOffLight();
+	}
+
+	private L1PcInstance getPetLootOverflowOwner(L1Character acquisitor,
+			L1NpcInstance npc, L1ItemInstance item) {
+		if (Config.PET_LOOT_OVERFLOW_MODE != 1) {
+			return null;
+		}
+		if (!(acquisitor instanceof L1PetInstance)
+				&& !(acquisitor instanceof L1SummonInstance)) {
+			return null;
+		}
+
+		L1Character master = ((L1NpcInstance) acquisitor).getMaster();
+		if (!(master instanceof L1PcInstance)) {
+			return null;
+		}
+
+		L1PcInstance owner = (L1PcInstance) master;
+		if ((owner.getMapId() != npc.getMapId())
+				|| (owner.getLocation().getTileLineDistance(npc.getLocation()) > Config.LOOTING_RANGE)) {
+			return null;
+		}
+		if (owner.getInventory().checkAddItem(item, item.getCount(), false) != L1Inventory.OK) {
+			return null;
+		}
+		return owner;
 	}
 
 }

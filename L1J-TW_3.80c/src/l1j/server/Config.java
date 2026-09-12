@@ -180,6 +180,8 @@ public final class Config {
 
 	public static int LOOTING_RANGE;
 
+	public static int PET_LOOT_OVERFLOW_MODE;
+
 	public static boolean ALT_NONPVP;
 
 	public static boolean ALT_ATKMSG;
@@ -690,6 +692,12 @@ public final class Config {
 			WHISPER_CHAT_LEVEL = Short.parseShort(altSettings.getProperty("WhisperChatLevel", "5"));
 			AUTO_LOOT = Byte.parseByte(altSettings.getProperty("AutoLoot", "2"));
 			LOOTING_RANGE = Integer.parseInt(altSettings.getProperty("LootingRange", "3"));
+			PET_LOOT_OVERFLOW_MODE = Integer.parseInt(
+					altSettings.getProperty("PetLootOverflowMode", "0"));
+			if ((PET_LOOT_OVERFLOW_MODE < 0) || (PET_LOOT_OVERFLOW_MODE > 1)) {
+				_log.warning("PetLootOverflowMode must be 0 or 1. Using default value 0.");
+				PET_LOOT_OVERFLOW_MODE = 0;
+			}
 			ALT_NONPVP = Boolean.parseBoolean(altSettings.getProperty("NonPvP", "true"));
 			ALT_ATKMSG = Boolean.parseBoolean(altSettings.getProperty("AttackMessageOn", "true"));
 			PET_MONSTER_MAGIC_PRIMARY_DAMAGE_RATE = Integer.parseInt(
@@ -1332,6 +1340,14 @@ public final class Config {
 		}
 		else if (pName.equalsIgnoreCase("LOOTING_RANGE")) {
 			LOOTING_RANGE = Integer.parseInt(pValue);
+		}
+		else if (pName.equalsIgnoreCase("PetLootOverflowMode")) {
+			int mode = Integer.parseInt(pValue);
+			if ((mode < 0) || (mode > 1)) {
+				_log.warning("PetLootOverflowMode must be 0 or 1. Keeping current value.");
+			} else {
+				PET_LOOT_OVERFLOW_MODE = mode;
+			}
 		}
 		else if (pName.equalsIgnoreCase("AltNonPvP")) {
 			ALT_NONPVP = Boolean.valueOf(pValue);
