@@ -182,6 +182,10 @@ public final class Config {
 
 	public static int PET_LOOT_OVERFLOW_MODE;
 
+	public static boolean PARTY_PET_HP_BAR_ENABLED;
+
+	public static boolean PARTY_SUMMON_HP_BAR_ENABLED;
+
 	public static boolean ALT_NONPVP;
 
 	public static boolean ALT_ATKMSG;
@@ -698,6 +702,10 @@ public final class Config {
 				_log.warning("PetLootOverflowMode must be 0 or 1. Using default value 0.");
 				PET_LOOT_OVERFLOW_MODE = 0;
 			}
+			PARTY_PET_HP_BAR_ENABLED = Boolean.parseBoolean(
+					altSettings.getProperty("PartyPetHpBarEnabled", "false"));
+			PARTY_SUMMON_HP_BAR_ENABLED = Boolean.parseBoolean(
+					altSettings.getProperty("PartySummonHpBarEnabled", "false"));
 			ALT_NONPVP = Boolean.parseBoolean(altSettings.getProperty("NonPvP", "true"));
 			ALT_ATKMSG = Boolean.parseBoolean(altSettings.getProperty("AttackMessageOn", "true"));
 			PET_MONSTER_MAGIC_PRIMARY_DAMAGE_RATE = Integer.parseInt(
@@ -1348,6 +1356,12 @@ public final class Config {
 			} else {
 				PET_LOOT_OVERFLOW_MODE = mode;
 			}
+		}
+		else if (pName.equalsIgnoreCase("PartyPetHpBarEnabled")) {
+			PARTY_PET_HP_BAR_ENABLED = Boolean.parseBoolean(pValue);
+		}
+		else if (pName.equalsIgnoreCase("PartySummonHpBarEnabled")) {
+			PARTY_SUMMON_HP_BAR_ENABLED = Boolean.parseBoolean(pValue);
 		}
 		else if (pName.equalsIgnoreCase("AltNonPvP")) {
 			ALT_NONPVP = Boolean.valueOf(pValue);

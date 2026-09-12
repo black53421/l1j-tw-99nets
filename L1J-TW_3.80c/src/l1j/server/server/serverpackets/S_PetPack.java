@@ -14,6 +14,7 @@
  */
 package l1j.server.server.serverpackets;
 
+import l1j.server.Config;
 import l1j.server.server.Opcodes;
 import l1j.server.server.model.Instance.L1PcInstance;
 import l1j.server.server.model.Instance.L1PetInstance;
@@ -59,9 +60,10 @@ public class S_PetPack extends ServerBasePacket {
 		writeS(null); // ??
 		writeS(pet.getMaster() != null ? pet.getMaster().getName() : "");
 		writeC(0); // ??
-		// HPのパーセント
-		if ((pet.getMaster() != null) && (pet.getMaster().getId() == pc.getId())) {
-			writeC(100 * pet.getCurrentHp() / pet.getMaxHp());
+		// HP percentage
+		if (isHpVisible(pet, pc)) {
+			int percent = pet.getMaxHp() != 0 ? 100 * pet.getCurrentHp() / pet.getMaxHp() : 100;
+			writeC(percent);
 		}
 		else {
 			writeC(0xFF);
@@ -71,6 +73,21 @@ public class S_PetPack extends ServerBasePacket {
 		writeC(0);
 		writeC(0xFF);
 		writeC(0xFF);
+	}
+
+	private boolean isHpVisible(L1PetInstance pet, L1PcInstance viewer) {
+		if (!(pet.getMaster() instanceof L1PcInstance)) {
+			return false;
+		}
+
+		L1PcInstance master = (L1PcInstance) pet.getMaster();
+		if (master.getId() == viewer.getId()) {
+			return true;
+		}
+
+		return Config.PARTY_PET_HP_BAR_ENABLED
+				&& master.isInParty()
+				&& master.getParty().isMember(viewer);
 	}
 
 	@Override

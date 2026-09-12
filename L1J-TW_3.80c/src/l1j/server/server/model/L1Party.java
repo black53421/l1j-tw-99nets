@@ -17,7 +17,10 @@ package l1j.server.server.model;
 import java.util.List;
 
 import l1j.server.Config;
+import l1j.server.server.model.Instance.L1NpcInstance;
 import l1j.server.server.model.Instance.L1PcInstance;
+import l1j.server.server.model.Instance.L1PetInstance;
+import l1j.server.server.model.Instance.L1SummonInstance;
 import l1j.server.server.serverpackets.S_HPMeter;
 import l1j.server.server.serverpackets.S_Party;
 import l1j.server.server.serverpackets.S_ServerMessage;
@@ -44,6 +47,7 @@ public class L1Party {
 			setLeader(pc);
 		} else {
 			createMiniHp(pc);
+			createCompanionMiniHp(pc);
 		}
 
 		_membersList.add(pc);
@@ -58,10 +62,11 @@ public class L1Party {
 		}
 		pc.stopRefreshParty();
 		_membersList.remove(pc);
-		pc.setParty(null);
 		if (!_membersList.isEmpty()) {
 			deleteMiniHp(pc);
+			deleteCompanionMiniHp(pc);
 		}
+		pc.setParty(null);
 	}
 
 	public boolean isVacancy() {
@@ -123,6 +128,60 @@ public class L1Party {
 		for (L1PcInstance member : members) { // パーティーメンバー分更新
 			member.sendPackets(new S_HPMeter(pc.getId(), 100 * pc.getCurrentHp() / pc.getMaxHp()));
 		}
+	}
+
+	public void updateCompanionMiniHP(L1PcInstance owner, L1NpcInstance companion) {
+		if ((owner == null) || (companion == null) || !isMember(owner)
+				|| !isCompanionHpBarEnabled(companion)) {
+			return;
+		}
+
+		int hpRatio = companion.getMaxHp() != 0
+				? 100 * companion.getCurrentHp() / companion.getMaxHp() : 100;
+		for (L1PcInstance member : getMembers()) {
+			if ((member.getId() != owner.getId()) && member.knownsObject(companion)) {
+				member.sendPackets(new S_HPMeter(companion.getId(), hpRatio));
+			}
+		}
+	}
+
+	private void createCompanionMiniHp(L1PcInstance joiningPc) {
+		for (L1PcInstance member : getMembers()) {
+			sendCompanionHpBars(member, joiningPc, true);
+			sendCompanionHpBars(joiningPc, member, true);
+		}
+	}
+
+	private void deleteCompanionMiniHp(L1PcInstance leavingPc) {
+		for (L1PcInstance member : getMembers()) {
+			sendCompanionHpBars(member, leavingPc, false);
+			sendCompanionHpBars(leavingPc, member, false);
+		}
+	}
+
+	private void sendCompanionHpBars(L1PcInstance owner, L1PcInstance viewer, boolean visible) {
+		for (L1NpcInstance companion : owner.getPetList().values()) {
+			if (!isCompanionHpBarEnabled(companion) || !viewer.knownsObject(companion)) {
+				continue;
+			}
+
+			int hpRatio = 0xff;
+			if (visible) {
+				hpRatio = companion.getMaxHp() != 0
+						? 100 * companion.getCurrentHp() / companion.getMaxHp() : 100;
+			}
+			viewer.sendPackets(new S_HPMeter(companion.getId(), hpRatio));
+		}
+	}
+
+	private boolean isCompanionHpBarEnabled(L1NpcInstance companion) {
+		if (companion instanceof L1PetInstance) {
+			return Config.PARTY_PET_HP_BAR_ENABLED;
+		}
+		if (companion instanceof L1SummonInstance) {
+			return Config.PARTY_SUMMON_HP_BAR_ENABLED;
+		}
+		return false;
 	}
 
 	private void breakup() {

@@ -686,9 +686,12 @@ public class L1PetInstance extends L1NpcInstance {
 		}
 
 		if (_petMaster != null) {
-			int HpRatio = 100 * currentHp / getMaxHp();
+			int HpRatio = getMaxHp() != 0 ? 100 * currentHp / getMaxHp() : 100;
 			L1PcInstance Master = _petMaster;
 			Master.sendPackets(new S_HPMeter(getId(), HpRatio));
+			if (Config.PARTY_PET_HP_BAR_ENABLED && Master.isInParty()) {
+				Master.getParty().updateCompanionMiniHP(Master, this);
+			}
 		}
 	}
 

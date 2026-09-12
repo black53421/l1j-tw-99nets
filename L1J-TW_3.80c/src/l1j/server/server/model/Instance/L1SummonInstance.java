@@ -20,6 +20,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.ScheduledFuture;
 
+import l1j.server.Config;
 import l1j.server.server.ActionCodes;
 import l1j.server.server.GeneralThreadPool;
 import l1j.server.server.IdFactory;
@@ -568,9 +569,12 @@ public class L1SummonInstance extends L1NpcInstance {
 		}
 
 		if (_master instanceof L1PcInstance) {
-			int HpRatio = 100 * currentHp / getMaxHp();
+			int HpRatio = getMaxHp() != 0 ? 100 * currentHp / getMaxHp() : 100;
 			L1PcInstance Master = (L1PcInstance) _master;
 			Master.sendPackets(new S_HPMeter(getId(), HpRatio));
+			if (Config.PARTY_SUMMON_HP_BAR_ENABLED && Master.isInParty()) {
+				Master.getParty().updateCompanionMiniHP(Master, this);
+			}
 		}
 	}
 
