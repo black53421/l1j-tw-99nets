@@ -4344,30 +4344,46 @@ public class C_NPCAction extends ClientBasePacket {
 			}
 		} else if ((((L1NpcInstance) obj).getNpcTemplate().get_npcId() >= 81353)
 				&& (((L1NpcInstance) obj).getNpcTemplate().get_npcId() <= 81363)) { // 魔法商人- 仿正設定   
-			int[] skills = new int[10];
-			char s1 = s.charAt(0);
-			switch(s1){
-			case 'b':
-				skills = new int[] {43, 79, 151, 158, 160, 206, 211, 216, 115, 149};                     
-				break;
+			int[] skills;
+	
+			switch (s.toLowerCase().charAt(0)) {
 			case 'a':
 				skills = new int[] {43, 79, 151, 158, 160, 206, 211, 216, 115, 148};
 				break;
+			case 'b':
+				skills = new int[] {43, 79, 151, 158, 160, 206, 211, 216, 115, 149};                     
+				break;
+			case 'c':
+				skills = new int[] {43, 79, 151, 158, 160, 206, 211, 216, 115, 158};                     
+				break;
+			default:
+			    skills = null;
+			    break;
 			}
-			if (s.equalsIgnoreCase("a") || s.equalsIgnoreCase("b")){
-				if(pc.getInventory().consumeItem(L1ItemId.ADENA,3000)){
-					L1SkillUse l1skilluse = new L1SkillUse();
-					for (int i = 0; i < skills.length; i++) {
-						l1skilluse.handleCommands(pc, 
-								skills[i], pc.getId(), pc.getX(), pc.getY(), null, 0, L1SkillUse.TYPE_GMBUFF);
-					}
-					htmlid = "bs_done";           
-				} else {
-					htmlid = "bs_adena";
-				}
+			if (skills != null) {
+			    if (pc.getInventory().consumeItem(L1ItemId.ADENA, 3000)) {
+			        L1SkillUse skillUse = new L1SkillUse();
+
+			        for (int skillId : skills) {
+			            skillUse.handleCommands(
+			                    pc,
+			                    skillId,
+			                    pc.getId(),
+			                    pc.getX(),
+			                    pc.getY(),
+			                    null,
+			                    0,
+			                    L1SkillUse.TYPE_GMBUFF);
+			        }
+
+			        htmlid = "bs_done";
+			    } else {
+			        htmlid = "bs_adena";
+			    }
 			}
+
 			if (s.equalsIgnoreCase("0")) {
-				htmlid = "bs_01";                 
+			    htmlid = "bs_01";
 			}
 		} else if (((L1NpcInstance) obj).getNpcTemplate().get_npcId() == 50016) {// 傑諾
 			if (s.equalsIgnoreCase("0")) {
