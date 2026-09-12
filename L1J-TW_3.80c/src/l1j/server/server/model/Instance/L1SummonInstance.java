@@ -357,7 +357,7 @@ public class L1SummonInstance extends L1NpcInstance {
 		monster.setHeading(getHeading());
 		monster.set_storeDroped(true);
 		monster.setInventory(getInventory());
-		getInventory().clearItems();
+		setInventory(null);
 		monster.setCurrentHpDirect(getCurrentHp());
 		monster.setCurrentMpDirect(getCurrentMp());
 		monster.setExp(0);
