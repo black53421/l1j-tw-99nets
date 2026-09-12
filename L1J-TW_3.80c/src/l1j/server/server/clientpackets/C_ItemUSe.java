@@ -255,6 +255,10 @@ public class C_ItemUSe extends ClientBasePacket {
 			}
 			if (delay_id != 0) { // ディレイ設定あり
 				if (pc.hasItemDelay(delay_id) == true) {
+					// The client enters teleport-wait before the server validates item delay.
+					if (isTeleportWaitItem(itemId)) {
+						pc.sendPackets(new S_Paralysis(S_Paralysis.TYPE_TELEPORT_UNLOCK, true));
+					}
 					return;
 				}
 			}
@@ -3153,6 +3157,19 @@ public class C_ItemUSe extends ClientBasePacket {
 			}
 
 			L1ItemDelay.onItemUse(client, l1iteminstance); // アイテムディレイ開始
+		}
+	}
+
+	private static boolean isTeleportWaitItem(int itemId) {
+		switch (itemId) {
+		case 140100:
+		case 40100:
+		case 40099:
+		case 40086:
+		case 40863:
+			return true;
+		default:
+			return false;
 		}
 	}
 
