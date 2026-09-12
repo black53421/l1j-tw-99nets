@@ -39,7 +39,7 @@ public class S_SkillBuy extends ServerBasePacket {
 		}
 
 		try {
-			writeC(Opcodes.S_OPCODE_SKILLBUY);
+			writeC(Opcodes.S_OPCODE_SKILLBUY_2);
 			writeD(100);
 			writeH(inCount);
 			for (int k = 0; k < count; k++) {

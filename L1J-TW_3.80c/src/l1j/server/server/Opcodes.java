@@ -47,7 +47,7 @@ public class Opcodes {
 	public static final int C_OPCODE_NPCTALK = 34; // 請求對話視窗
 	public static final int C_OPCODE_TRADEADDITEM = 37; // 請求交易(添加物品)
 	public static final int C_OPCODE_SHOP = 38; // 請求開設個人商店
-	public static final int C_OPCODE_SKILLBUY = 39; // 請求查詢可以學習的魔法清單
+	public static final int C_OPCODE_SKILLBUY = 145; // 請求查詢可以學習的魔法清單
 	public static final int C_OPCODE_CHATGLOBAL = 40; // 請求使用廣播聊天頻道
 	public static final int C_OPCODE_DOOR = 41; // 請求開門或關門
 	public static final int C_OPCODE_PARTYLIST = 43; // 請求查詢隊伍成員
@@ -262,7 +262,7 @@ public class Opcodes {
 	//public static final int C_OPCODE_BANPARTY = 0; // 請求驅逐隊伍
 	//public static final int C_OPCODE_SHIP = 1; // 請求下船
 	public static final int C_OPCODE_TELEPORTLOCK = 2; // 玩家傳送鎖定(回溯檢測用)
-	public static final int C_OPCODE_SKILLBUYOK = 44444; // 請求學習魔法
+	public static final int C_OPCODE_SKILLBUYOK = 39; // 請求學習魔法
 	//public static final int C_OPCODE_ADDBUDDY = 5; // 請求新增好友
 	//public static final int C_OPCODE_WAREHOUSELOCK = 8; // 請求變更倉庫密碼 && 送出倉庫密碼
 	//public static final int C_OPCODE_DROPITEM = 9; // 請求丟棄物品
