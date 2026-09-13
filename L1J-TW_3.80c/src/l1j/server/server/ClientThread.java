@@ -73,6 +73,8 @@ public class ClientThread implements Runnable, PacketOutput {
 	private Socket _csocket;
 
 	private int _loginStatus = 0;
+
+	private boolean _login38RangeSkillDamageExtension = false;
 	
 	// 3.80C Taiwan Server First Packet
 	private static final byte[] FIRST_PACKET = {
@@ -108,6 +110,15 @@ public class ClientThread implements Runnable, PacketOutput {
 
 	public String getHostname() {
 		return _hostname;
+	}
+
+
+	public boolean isLogin38RangeSkillDamageExtension() {
+		return _login38RangeSkillDamageExtension;
+	}
+
+	public void setLogin38RangeSkillDamageExtension(boolean enabled) {
+		_login38RangeSkillDamageExtension = enabled;
 	}
 
 	// TODO: 翻譯

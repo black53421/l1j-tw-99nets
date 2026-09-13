@@ -35,10 +35,17 @@ public class S_RangeSkill extends ServerBasePacket {
 	public static final int TYPE_DIR = 8;
 
 	public S_RangeSkill(L1Character cha, L1Character[] target, int spellgfx, int actionId, int type) {
-		buildPacket(cha, target, spellgfx, actionId, type);
+		buildPacket(cha, target, spellgfx, actionId, type, null);
 	}
 
-	private void buildPacket(L1Character cha, L1Character[] target, int spellgfx, int actionId, int type) {
+	public S_RangeSkill(L1Character cha, L1Character[] target, int spellgfx, int actionId, int type, int[] damage) {
+		if ((damage != null) && (damage.length != target.length)) {
+			throw new IllegalArgumentException("damage length must match target length");
+		}
+		buildPacket(cha, target, spellgfx, actionId, type, damage);
+	}
+
+	private void buildPacket(L1Character cha, L1Character[] target, int spellgfx, int actionId, int type, int[] damage) {
 		writeC(Opcodes.S_OPCODE_RANGESKILLS);
 		writeC(actionId);
 		writeD(cha.getId());
@@ -57,9 +64,12 @@ public class S_RangeSkill extends ServerBasePacket {
 		writeC(type); // 0:範囲 6:遠距離 8:範囲&遠距離
 		writeH(0);
 		writeH(target.length);
-		for (L1Character element : target) {
-			writeD(element.getId());
+		for (int i = 0; i < target.length; i++) {
+			writeD(target[i].getId());
 			writeH(0x20); // 0:ダメージモーションあり 0以外:なし
+			if (damage != null) {
+				writeD(Math.max(0, damage[i]));
+			}
 		}
 	}
 

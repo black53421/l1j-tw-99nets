@@ -14,6 +14,9 @@
  */
 package l1j.server.server.clientpackets;
 
+import java.util.logging.Logger;
+
+import l1j.server.Config;
 import l1j.server.server.ClientThread;
 import l1j.server.server.serverpackets.S_ServerVersion;
 
@@ -26,7 +29,9 @@ import l1j.server.server.serverpackets.S_ServerVersion;
 public class C_ServerVersion extends ClientBasePacket {
 
 	private static final String C_SERVER_VERSION = "[C] C_ServerVersion";
+	private static final Logger _log = Logger.getLogger(C_ServerVersion.class.getName());
 	private static final int currentClientVersion = 0x00000000;
+	private static final int LOGIN38_RANGE_DAMAGE_VERSION = 0x4438334C;
 
 	@SuppressWarnings("unused")
 	public C_ServerVersion(byte decrypt[], ClientThread client) throws Exception {
@@ -43,6 +48,13 @@ public class C_ServerVersion extends ClientBasePacket {
 		int unknownVer1 = readH();      // 未知的版本號
 		int unknownVer2 = readH();      // 未知的版本號
 		int clientVersion = readD();    // 主程式版本號
+
+		boolean rangeDamageExtension = Config.LOGIN38_RANGE_SKILL_DAMAGE_EXTENSION
+				&& clientVersion == LOGIN38_RANGE_DAMAGE_VERSION;
+		client.setLogin38RangeSkillDamageExtension(rangeDamageExtension);
+		if (rangeDamageExtension) {
+			_log.info("[Login38RangeDamage] capability enabled for " + client.getIp());
+		}
 
 		client.sendPacket(new S_ServerVersion());
 	}

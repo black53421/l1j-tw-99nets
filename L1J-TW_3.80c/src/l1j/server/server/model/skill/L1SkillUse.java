@@ -196,6 +196,8 @@ public class L1SkillUse {
 
 		private boolean _isCalc = true; // ダメージや確率魔法の計算をする必要があるか？
 
+		private int _damage = 0;
+
 		public TargetStatus(L1Character _cha) {
 			_target = _cha;
 		}
@@ -210,6 +212,14 @@ public class L1SkillUse {
 
 		public boolean isCalc() {
 			return _isCalc;
+		}
+
+		public int getDamage() {
+			return _damage;
+		}
+
+		public void setDamage(int damage) {
+			_damage = Math.max(0, damage);
 		}
 	}
 
@@ -1436,24 +1446,42 @@ public class L1SkillUse {
 				}
 				else { // 有方向範囲攻撃魔法
 					L1Character[] cha = new L1Character[_targetList.size()];
+					int[] damage = new int[_targetList.size()];
 					int i = 0;
 					for (TargetStatus ts : _targetList) {
 						cha[i] = ts.getTarget();
+						damage[i] = ts.getDamage();
 						i++;
 					}
-					_player.sendPackets(new S_RangeSkill(_player, cha, _gfxid, _actid, S_RangeSkill.TYPE_DIR));
+					if ((_player.getNetConnection() != null)
+							&& _player.getNetConnection().isLogin38RangeSkillDamageExtension()) {
+						_player.sendPackets(new S_RangeSkill(_player, cha, _gfxid, _actid,
+								S_RangeSkill.TYPE_DIR, damage));
+					}
+					else {
+						_player.sendPackets(new S_RangeSkill(_player, cha, _gfxid, _actid, S_RangeSkill.TYPE_DIR));
+					}
 					_player.broadcastPacket(new S_RangeSkill(_player, cha, _gfxid, _actid, S_RangeSkill.TYPE_DIR));
 				}
 			}
 			else if (_skill.getTarget().equals("none") && (_skill.getType() == L1Skills.TYPE_ATTACK)) { // 無方向範囲攻撃魔法
 				L1Character[] cha = new L1Character[_targetList.size()];
+				int[] damage = new int[_targetList.size()];
 				int i = 0;
 				for (TargetStatus ts : _targetList) {
 					cha[i] = ts.getTarget();
+					damage[i] = ts.getDamage();
 					cha[i].broadcastPacketExceptTargetSight(new S_DoActionGFX(cha[i].getId(), ActionCodes.ACTION_Damage), _player);
 					i++;
 				}
-				_player.sendPackets(new S_RangeSkill(_player, cha, _gfxid, _actid, S_RangeSkill.TYPE_NODIR));
+				if ((_player.getNetConnection() != null)
+						&& _player.getNetConnection().isLogin38RangeSkillDamageExtension()) {
+					_player.sendPackets(new S_RangeSkill(_player, cha, _gfxid, _actid,
+							S_RangeSkill.TYPE_NODIR, damage));
+				}
+				else {
+					_player.sendPackets(new S_RangeSkill(_player, cha, _gfxid, _actid, S_RangeSkill.TYPE_NODIR));
+				}
 				_player.broadcastPacket(new S_RangeSkill(_player, cha, _gfxid, _actid, S_RangeSkill.TYPE_NODIR));
 			}
 			else { // 補助魔法
@@ -2323,6 +2351,9 @@ public class L1SkillUse {
 				// 無法對城門、守護塔補血
 				if (((cha instanceof L1TowerInstance) || (cha instanceof L1DoorInstance)) && (dmg < 0)) {
 					dmg = 0;
+				}
+				if (_skill.getType() == L1Skills.TYPE_ATTACK) {
+					ts.setDamage(dmg);
 				}
 				 // 吸取魔力。
 				if ((dmg > 0) || (drainMana != 0)) {

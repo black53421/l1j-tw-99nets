@@ -268,6 +268,9 @@ public final class Config {
 	public static int BATCH_ENCHANT_RISKY_ATTEMPT_DELAY_MILLIS;
 	public static int BATCH_ENCHANT_ITEM_DELAY_MILLIS;
 
+	/** Login38 per-target range-skill damage protocol extension. */
+	public static boolean LOGIN38_RANGE_SKILL_DAMAGE_EXTENSION;
+
 	public static int NPC_BLOCKER_RETRY_COUNT;
 
 	public static boolean COMPANION_FOLLOW_QUEUE_ENABLED;
@@ -824,6 +827,9 @@ public final class Config {
 					altSettings.getProperty("BatchEnchantRiskyAttemptDelayMillis", "15"));
 			BATCH_ENCHANT_ITEM_DELAY_MILLIS = Integer.parseInt(
 					altSettings.getProperty("BatchEnchantItemDelayMillis", "10"));
+
+			LOGIN38_RANGE_SKILL_DAMAGE_EXTENSION = Boolean.parseBoolean(
+					altSettings.getProperty("Login38RangeSkillDamageExtension", "false"));
 			if (BATCH_ENCHANT_MAX_ITEMS < 1) {
 				_log.warning("BatchEnchantMaxItems must be 1 or greater. Using default value 30.");
 				BATCH_ENCHANT_MAX_ITEMS = 30;
