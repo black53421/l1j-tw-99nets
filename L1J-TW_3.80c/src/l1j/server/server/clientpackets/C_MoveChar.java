@@ -19,6 +19,7 @@ import static l1j.server.server.model.skill.L1SkillId.ABSOLUTE_BARRIER;
 import static l1j.server.server.model.skill.L1SkillId.MEDITATION;
 import l1j.server.Config;
 import l1j.server.server.ClientThread;
+import l1j.server.server.GeneralThreadPool;
 import l1j.server.server.TebesRiftController;
 import l1j.server.server.model.AcceleratorChecker;
 import l1j.server.server.model.Dungeon;
@@ -63,7 +64,7 @@ public class C_MoveChar extends ClientBasePacket {
 		super(decrypt);
 		
 		L1PcInstance pc = client.getActiveChar();
-		if ((pc == null) || pc.isTeleport()) { // 傳送中
+		if ((pc == null) || pc.isTeleport() || pc.isDungeonTransitionPending()) { // Block movement during map transitions
 			return;
 		}
 		
@@ -104,10 +105,15 @@ public class C_MoveChar extends ClientBasePacket {
 		locx = targetX;
 		locy = targetY;
 
-		if (Dungeon.getInstance().dg(locx, locy, pc.getMap().getId(), pc)) { // 傳點
+		final short sourceMapId = pc.getMapId();
+		final boolean delayedDungeonTransition = Config.DUNGEON_STEP_TRANSITION_ENABLED
+				&& Dungeon.getInstance().isStandardTransitionPoint(locx, locy, sourceMapId);
+
+		if (!delayedDungeonTransition
+				&& Dungeon.getInstance().dg(locx, locy, sourceMapId, pc)) { // 傳點
 			return;
 		}
-		if (DungeonRandom.getInstance().dg(locx, locy, pc.getMap().getId(), pc)) { // 取得隨機傳送地點
+		if (DungeonRandom.getInstance().dg(locx, locy, sourceMapId, pc)) { // 取得隨機傳送地點
 			return;
 		}
 
@@ -152,7 +158,75 @@ public class C_MoveChar extends ClientBasePacket {
 		l1j.server.server.model.game.L1PolyRace.getInstance().checkLapFinish(pc);
 		L1WorldTraps.getInstance().onPlayerMoved(pc);
 
+		if (delayedDungeonTransition) {
+			pc.setDungeonTransitionPending(true);
+			scheduleDungeonTransition(pc, sourceMapId, targetX, targetY);
+		}
+
 		// user.UpdateObject(); // 可視範囲内の全オブジェクト更新
+	}
+
+	private static void scheduleDungeonTransition(final L1PcInstance pc,
+			final short sourceMapId, final int sourceX, final int sourceY) {
+		int baseDelay = pc.getAcceleratorChecker().getExpectedInterval(AcceleratorChecker.ACT_TYPE.MOVE);
+		int delay = baseDelay > 0
+				? (baseDelay * Config.DUNGEON_STEP_TRANSITION_DELAY_PERCENT) / 100
+				: Config.DUNGEON_STEP_TRANSITION_FALLBACK_DELAY_MS;
+		delay = Math.max(1, delay);
+
+		if (pc.isMoveTraceEnabled()) {
+			System.out.println(String.format(
+					"[PORTALSTEP] phase=scheduled player=%s map=%d pos=%d,%d baseDelay=%d delay=%d",
+					pc.getName(), sourceMapId, sourceX, sourceY, baseDelay, delay));
+		}
+
+		if (GeneralThreadPool.getInstance().schedule(new Runnable() {
+			@Override
+			public void run() {
+				try {
+					if (!pc.isDungeonTransitionPending()) {
+						return;
+					}
+					if (pc.isDead() || pc.isTeleport()
+							|| (pc.getMapId() != sourceMapId)
+							|| (pc.getX() != sourceX) || (pc.getY() != sourceY)) {
+						traceDungeonTransitionCancel(pc, sourceMapId, sourceX, sourceY);
+						return;
+					}
+
+					boolean teleported = Dungeon.getInstance().dg(sourceX, sourceY, sourceMapId, pc);
+					if (pc.isMoveTraceEnabled()) {
+						System.out.println(String.format(
+								"[PORTALSTEP] phase=executed player=%s sourceMap=%d source=%d,%d result=%s currentMap=%d current=%d,%d",
+								pc.getName(), sourceMapId, sourceX, sourceY,
+								teleported ? "TELEPORTED" : "NO_MATCH", pc.getMapId(), pc.getX(), pc.getY()));
+					}
+				}
+				finally {
+					pc.setDungeonTransitionPending(false);
+				}
+			}
+		}, delay) == null) {
+			pc.setDungeonTransitionPending(false);
+			if (pc.isMoveTraceEnabled()) {
+				System.out.println(String.format(
+						"[PORTALSTEP] phase=schedule_failed player=%s map=%d pos=%d,%d",
+						pc.getName(), sourceMapId, sourceX, sourceY));
+			}
+		}
+	}
+
+	private static void traceDungeonTransitionCancel(L1PcInstance pc,
+			short sourceMapId, int sourceX, int sourceY) {
+		if (!pc.isMoveTraceEnabled()) {
+			return;
+		}
+
+		System.out.println(String.format(
+				"[PORTALSTEP] phase=cancelled player=%s expected=%d:%d,%d current=%d:%d,%d dead=%s teleport=%s",
+				pc.getName(), sourceMapId, sourceX, sourceY, pc.getMapId(),
+				pc.getX(), pc.getY(), Boolean.toString(pc.isDead()),
+				Boolean.toString(pc.isTeleport())));
 	}
 
 	private static void traceMovePacket(L1PcInstance pc, int fromX, int fromY,

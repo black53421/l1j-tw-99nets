@@ -184,6 +184,10 @@ public class AcceleratorChecker {
 	 *            - 調べるPC
 	 * @return 正しいインターバル(ms)
 	 */
+	public int getExpectedInterval(ACT_TYPE type) {
+		return getRightInterval(type);
+	}
+
 	private int getRightInterval(ACT_TYPE type) {
 		int interval;
 

@@ -986,6 +986,14 @@ public class L1PcInstance extends L1Character {
 		_isTeleport = flag;
 	}
 
+	public boolean isDungeonTransitionPending() {
+		return _dungeonTransitionPending;
+	}
+
+	public void setDungeonTransitionPending(boolean pending) {
+		_dungeonTransitionPending = pending;
+	}
+
 	public boolean isDrink() {
 		return _isDrink;
 	}
@@ -1960,6 +1968,7 @@ public class L1PcInstance extends L1Character {
 	private boolean _tradeOk;
 	private int _tempID;
 	private boolean _isTeleport = false;
+	private volatile boolean _dungeonTransitionPending = false;
 	private boolean _isDrink = false;
 	private boolean _isGres = false;
 	private boolean _isPinkName = false;

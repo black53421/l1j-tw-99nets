@@ -167,6 +167,12 @@ public class Dungeon {
 		}
 	}
 
+	public boolean isStandardTransitionPoint(int locX, int locY, int mapId) {
+		String key = new StringBuilder().append(mapId).append(locX).append(locY).toString();
+		NewDungeon newDungeon = _dungeonMap.get(key);
+		return (newDungeon != null) && (newDungeon._dungeonType == DungeonType.NONE);
+	}
+
 	public boolean dg(int locX, int locY, int mapId, L1PcInstance pc) {
 		int servertime = L1GameTimeClock.getInstance().currentTime().getSeconds();
 		int nowtime = servertime % 86400;

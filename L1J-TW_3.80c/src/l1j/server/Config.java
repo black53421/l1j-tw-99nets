@@ -110,6 +110,12 @@ public final class Config {
 
 	public static boolean SEND_PACKET_BEFORE_TELEPORT;
 
+	public static boolean DUNGEON_STEP_TRANSITION_ENABLED;
+
+	public static int DUNGEON_STEP_TRANSITION_DELAY_PERCENT;
+
+	public static int DUNGEON_STEP_TRANSITION_FALLBACK_DELAY_MS;
+
 	public static int RANDOM_TELEPORT_MIN_EXIT_COUNT;
 
 	public static boolean DETECT_DB_RESOURCE_LEAKS;
@@ -638,6 +644,20 @@ public final class Config {
 			ALLOW_2PC = Boolean.parseBoolean(serverSettings.getProperty("Allow2PC", "true"));
 			LEVEL_DOWN_RANGE = Integer.parseInt(serverSettings.getProperty("LevelDownRange", "0"));
 			SEND_PACKET_BEFORE_TELEPORT = Boolean.parseBoolean(serverSettings.getProperty("SendPacketBeforeTeleport", "false"));
+			DUNGEON_STEP_TRANSITION_ENABLED = Boolean.parseBoolean(
+					serverSettings.getProperty("DungeonStepTransitionEnabled", "false"));
+			DUNGEON_STEP_TRANSITION_DELAY_PERCENT = Integer.parseInt(
+					serverSettings.getProperty("DungeonStepTransitionDelayPercent", "100"));
+			DUNGEON_STEP_TRANSITION_FALLBACK_DELAY_MS = Integer.parseInt(
+					serverSettings.getProperty("DungeonStepTransitionFallbackDelayMs", "300"));
+			if ((DUNGEON_STEP_TRANSITION_DELAY_PERCENT < 0)
+					|| (DUNGEON_STEP_TRANSITION_DELAY_PERCENT > 150)) {
+				DUNGEON_STEP_TRANSITION_DELAY_PERCENT = 100;
+			}
+			if ((DUNGEON_STEP_TRANSITION_FALLBACK_DELAY_MS < 1)
+					|| (DUNGEON_STEP_TRANSITION_FALLBACK_DELAY_MS > 2000)) {
+				DUNGEON_STEP_TRANSITION_FALLBACK_DELAY_MS = 300;
+			}
 			RANDOM_TELEPORT_MIN_EXIT_COUNT = Integer.parseInt(serverSettings.getProperty("RandomTeleportMinExitCount", "1"));
 			DETECT_DB_RESOURCE_LEAKS = Boolean.parseBoolean(serverSettings.getProperty("EnableDatabaseResourceLeaksDetection", "false"));
 			CmdActive = Boolean.parseBoolean(serverSettings.getProperty("CmdActive", "false"));
