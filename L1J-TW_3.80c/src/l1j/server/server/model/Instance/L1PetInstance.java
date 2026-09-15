@@ -41,6 +41,7 @@ import l1j.server.server.serverpackets.S_NpcChatPacket;
 import l1j.server.server.serverpackets.S_PetCtrlMenu;
 import l1j.server.server.serverpackets.S_PetMenuPacket;
 import l1j.server.server.serverpackets.S_PetPack;
+import l1j.server.server.serverpackets.S_RemoveObject;
 import l1j.server.server.serverpackets.S_ServerMessage;
 import l1j.server.server.serverpackets.S_SkillSound;
 import l1j.server.server.serverpackets.S_SummonPack;
@@ -311,6 +312,16 @@ public class L1PetInstance extends L1NpcInstance {
 		// 取得進化前最大血魔
 		int tmpMaxHp = getMaxHp();
 		int tmpMaxMp = getMaxMp();
+
+		// Remove the old client-side object before changing the pet template.
+		// transform() will re-send S_PetPack through onPerceive() with the new gfx.
+		S_RemoveObject removePacket = new S_RemoveObject(this);
+		for (L1PcInstance pc : L1World.getInstance().getRecognizePlayer(this)) {
+			if (pc.knownsObject(this)) {
+				pc.removeKnownObject(this);
+				pc.sendPackets(removePacket);
+			}
+		}
 
 		transform(newNpcId);
 		_type = PetTypeTable.getInstance().get(newNpcId);
