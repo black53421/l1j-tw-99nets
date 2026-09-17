@@ -194,6 +194,8 @@ public final class Config {
 
 	public static boolean PARTY_SUMMON_HP_BAR_ENABLED;
 
+	public static boolean CHAR_RESET_ALLOW_FREE_ELIXIR_STATS;
+
 	public static boolean ALT_NONPVP;
 
 	public static boolean ALT_ATKMSG;
@@ -737,6 +739,8 @@ public final class Config {
 					altSettings.getProperty("PartyPetHpBarEnabled", "false"));
 			PARTY_SUMMON_HP_BAR_ENABLED = Boolean.parseBoolean(
 					altSettings.getProperty("PartySummonHpBarEnabled", "false"));
+			CHAR_RESET_ALLOW_FREE_ELIXIR_STATS = Boolean.parseBoolean(
+					altSettings.getProperty("CharResetAllowFreeElixirStats", "true"));
 			ALT_NONPVP = Boolean.parseBoolean(altSettings.getProperty("NonPvP", "true"));
 			ALT_ATKMSG = Boolean.parseBoolean(altSettings.getProperty("AttackMessageOn", "true"));
 			PET_MONSTER_MAGIC_PRIMARY_DAMAGE_RATE = Integer.parseInt(
@@ -1404,6 +1408,9 @@ public final class Config {
 		}
 		else if (pName.equalsIgnoreCase("PartySummonHpBarEnabled")) {
 			PARTY_SUMMON_HP_BAR_ENABLED = Boolean.parseBoolean(pValue);
+		}
+		else if (pName.equalsIgnoreCase("CharResetAllowFreeElixirStats")) {
+			CHAR_RESET_ALLOW_FREE_ELIXIR_STATS = Boolean.parseBoolean(pValue);
 		}
 		else if (pName.equalsIgnoreCase("AltNonPvP")) {
 			ALT_NONPVP = Boolean.valueOf(pValue);

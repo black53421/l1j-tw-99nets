@@ -31,6 +31,7 @@ INSERT INTO `commands` VALUES ('summon', '150', 'L1Summon');
 INSERT INTO `commands` VALUES ('cleaning', '200', 'L1DeleteGroundItem');
 INSERT INTO `commands` VALUES ('addskill', '200', 'L1AddSkill');
 INSERT INTO `commands` VALUES ('level', '150', 'L1Level');
+INSERT INTO `commands` VALUES ('charresettest', '200', 'L1CharResetTest');
 INSERT INTO `commands` VALUES ('loc', '50', 'L1Loc');
 INSERT INTO `commands` VALUES ('desc', '200', 'L1Describe');
 INSERT INTO `commands` VALUES ('who', '100', 'L1Who');
